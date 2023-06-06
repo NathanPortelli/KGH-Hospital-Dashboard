@@ -1,8 +1,14 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 // @mui
 import { alpha } from '@mui/material/styles';
 import { Grid, Box, Divider, Typography, Stack, MenuItem, Avatar, IconButton, Popover } from '@mui/material';
-// mocks_
+
+import { collection, getDocs, query, where } from 'firebase/firestore';
+import { getAuth, signOut } from "firebase/auth";
+import { db, auth } from '../../../config/firebase';
 import account from '../../../_mock/account';
 
 // ----------------------------------------------------------------------
@@ -25,14 +31,45 @@ const MENU_OPTIONS = [
 // ----------------------------------------------------------------------
 
 export default function AccountPopover() {
+  const [userName, setUserName] = useState([]);
+  const userCollectionRef = collection(db, "users");
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const getUserName = async () => {
+      try {
+        const querySnapshot = await getDocs(
+          query(userCollectionRef, where("email", "==", auth.currentUser.email))
+        );
+        if (!querySnapshot.empty) {
+          const user = querySnapshot.docs[0].data();
+          const { name, designation } = user;
+          setUserName({ name, designation });
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    getUserName();
+  }, []);
+
   const [open, setOpen] = useState(null);
 
   const handleOpen = (event) => {
     setOpen(event.currentTarget);
   };
 
-  const handleClose = () => {
+  const handleClose = (event) => {
     setOpen(null);
+  };
+
+  const handleLogout = () => {
+    const auth = getAuth();
+    signOut(auth).then(() => {
+      navigate('/login', { replace: true });
+    }).catch((error) => {
+      toast.error('An error occurred while signing out. Please refresh and try again.');
+    });
   };
 
   return (
@@ -74,8 +111,8 @@ export default function AccountPopover() {
         </Grid>
         <Grid item>
           <Stack direction="column" alignItems="flex-start" spacing={0} sx={{ ml: 1 }}>
-            <Typography sx={{ color: "#04297A" }}>Dr Francesca Muscat</Typography>
-            <Typography sx={{textAlign: 'right', color: "#04297A", fontSize: "12px" }}>NURSE</Typography>
+          <Typography sx={{ color: "#04297A" }}>{userName.name}</Typography>
+          <Typography sx={{ textAlign: 'right', color: "#04297A", fontSize: "12px", textTransform: 'uppercase' }}>{userName.designation}</Typography>
           </Stack>
         </Grid>
       </Grid>
@@ -101,10 +138,10 @@ export default function AccountPopover() {
       >
         <Box sx={{ my: 1.5, px: 2.5 }}>
           <Typography variant="subtitle2" noWrap>
-            {account.displayName}
+            {userName.name}
           </Typography>
           <Typography variant="body2" sx={{ color: 'text.secondary' }} noWrap>
-            {account.email}
+            {auth?.currentUser?.email}
           </Typography>
         </Box>
 
@@ -120,7 +157,7 @@ export default function AccountPopover() {
 
         <Divider sx={{ borderStyle: 'dashed' }} />
 
-        <MenuItem onClick={handleClose} sx={{ m: 1 }}>
+        <MenuItem onClick={handleLogout} sx={{ m: 1 }}>
           Logout
         </MenuItem>
       </Popover>

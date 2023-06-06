@@ -11,6 +11,7 @@ import {
   AppWidgetSummary,
 } from '../sections/@dashboard/app';
 
+import { auth } from '../config/firebase';
 import Iconify from '../components/iconify';
 
 // ----------------------------------------------------------------------

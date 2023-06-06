@@ -1,7 +1,14 @@
-import * as React from 'react';
+import { useState,useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
+
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 // @mui
 import { Grid, Button, Container, Stack, Typography, TextField, InputLabel, Input, FormControl, Select, MenuItem, Box } from '@mui/material';
+
+import { addDoc, collection, getDocs, query, where } from 'firebase/firestore';
+import { db, auth } from '../config/firebase';
 import Iconify from '../components/iconify';
 
 // ----------------------------------------------------------------------
@@ -15,6 +22,68 @@ const handleAgeInputChange = (event) => {
 // ----------------------------------------------------------------------
   
 export default function NewPatientPage() {
+  const navigate = useNavigate();
+
+  const [newFirstName, setNewFirstName] = useState("");
+  const [newLastName, setNewLastName] = useState("");
+  const [newIDNum, setNewIDNum] = useState("");
+  const [newSex, setNewSex] = useState("");
+  const [newLocality, setNewLocality] = useState("");
+  const [newAge, setNewAge] = useState(0);
+  const [newDOB, setNewDOB] = useState(0);
+
+  const [newAdmDate, setNewAdmDate] = useState(0);
+  const [newAdmThru, setNewAdmThru] = useState("");
+  const [newAdmConsultant, setNewAdmConsultant] = useState("");
+  const [newAdmMainDiag, setNewAdmMainDiag] = useState("");
+  const [newAdmOtherDiag, setNewAdmOtherDiag] = useState("");
+  const [newAdmWard, setNewAdmWard] = useState("");
+
+  const patientCollectionRef = collection(db, "patients");
+  const admissionCollectionRef = collection(db, "patientadmdetails")
+  
+  const onSubmitPatientDetails = async () => {
+    if (
+      newFirstName === '' ||
+      newLastName === '' ||
+      newIDNum === '' ||
+      newSex === '' ||
+      newAge === 0 ||
+      newDOB === 0 ||
+      newLocality === ''
+    ) {
+      toast.error('Please fill in all fields.');
+      return;
+    }
+  
+    try {
+      await addDoc(patientCollectionRef, {
+        FirstName: newFirstName,
+        LastName: newLastName,
+        IDNum: newIDNum,
+        Sex: newSex,
+        Age: newAge,
+        DOB: newDOB,
+        Locality: newLocality,
+      });
+
+      await addDoc(admissionCollectionRef, {
+        IDNum: newIDNum,
+        AdmissionThru: newAdmThru,
+        AdmissionWard: newAdmWard,
+        AdmitDate: newAdmDate,
+        Consultant: newAdmConsultant,
+        MainDiagnosis: newAdmMainDiag,
+        OtherDiagnosis: newAdmOtherDiag,
+      });
+  
+      toast.success('Patient details submitted successfully!');
+      navigate('/dashboard/patientlist');
+    } catch (e) {
+      toast.error('An error occurred while submitting the details. Please try again.');
+    }    
+  };
+
   return (
     <>
       <Helmet>
@@ -42,6 +111,7 @@ export default function NewPatientPage() {
                 fullWidth
                 autoComplete="given-name"
                 variant="standard"
+                onChange={(e) => setNewFirstName(e.target.value)}
               />
             </Grid>
             <Grid item xs={12} sm={6}>
@@ -53,6 +123,7 @@ export default function NewPatientPage() {
                 fullWidth
                 autoComplete="family-name"
                 variant="standard"
+                onChange={(e) => setNewLastName(e.target.value)}
               />
             </Grid>
             <Grid item xs={12} sm={12}>
@@ -64,6 +135,7 @@ export default function NewPatientPage() {
                 fullWidth
                 autoComplete="idnum"
                 variant="standard"
+                onChange={(e) => setNewIDNum(e.target.value)}
               />
             </Grid> 
             <Grid item xs={12} sm={6}>
@@ -76,7 +148,7 @@ export default function NewPatientPage() {
               variant="standard"
               type="number"
               inputProps={{ max: 120, inputComponent: Input }}
-              onChange={handleAgeInputChange}
+              onChange={(e) => setNewAge(Number(e.target.value))}
             />
             </Grid>
             <Grid item xs={12} sm={6}>
@@ -88,6 +160,7 @@ export default function NewPatientPage() {
                   autoComplete="date"
                   variant="standard"
                   type="date"
+                  onChange={(e) => setNewDOB(Date(e.target.value))}
               />
             </Grid>
             <Grid item xs={12} sm={6}>
@@ -95,9 +168,9 @@ export default function NewPatientPage() {
                 <InputLabel variant="standard" htmlFor="uncontrolled-native" sx={{ pl: 2 }}>
                   Sex
                 </InputLabel>
-                <Select labelId="sex" id="sex" label="Sex">
-                  <MenuItem value={1}>Male</MenuItem>
-                  <MenuItem value={0}>Female</MenuItem>
+                <Select labelId="sex" id="sex" label="Sex" onChange={(e) => setNewSex(e.target.value)}>
+                  <MenuItem value={"M"}>Male</MenuItem>
+                  <MenuItem value={"F"}>Female</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
@@ -110,77 +183,77 @@ export default function NewPatientPage() {
                   labelId="locality"
                   id="locality"
                   label="Locality"
-                  m
+                  onChange={(e) => setNewLocality(e.target.value)}
                 >
-                  <MenuItem>Attard</MenuItem>
-                  <MenuItem>Balzan</MenuItem>
-                  <MenuItem>Birkirkara</MenuItem>
-                  <MenuItem>Birżebbuġa</MenuItem>
-                  <MenuItem>Cospicua</MenuItem>
-                  <MenuItem>Dingli</MenuItem>
-                  <MenuItem>Fgura</MenuItem>
-                  <MenuItem>Floriana</MenuItem>
-                  <MenuItem>Fontana</MenuItem>
-                  <MenuItem>Gudja</MenuItem>
-                  <MenuItem>Għajnsielem</MenuItem>
-                  <MenuItem>Għarb</MenuItem>
-                  <MenuItem>Għargħur</MenuItem>
-                  <MenuItem>Għasri</MenuItem>
-                  <MenuItem>Għaxaq</MenuItem>
-                  <MenuItem>Gżira</MenuItem>
-                  <MenuItem>Iklin</MenuItem>
-                  <MenuItem>Il-Gżira</MenuItem>
-                  <MenuItem>Imdina</MenuItem>
-                  <MenuItem>Imqabba</MenuItem>
-                  <MenuItem>Imsida</MenuItem>
-                  <MenuItem>Imtarfa</MenuItem>
-                  <MenuItem>Imġarr</MenuItem>
-                  <MenuItem>Kalkara</MenuItem>
-                  <MenuItem>Kerċem</MenuItem>
-                  <MenuItem>Kirkop</MenuItem>
-                  <MenuItem>Lija</MenuItem>
-                  <MenuItem>Luqa</MenuItem>
-                  <MenuItem>Marsa</MenuItem>
-                  <MenuItem>Marsaskala</MenuItem>
-                  <MenuItem>Marsaxlokk</MenuItem>
-                  <MenuItem>Mellieħa</MenuItem>
-                  <MenuItem>Mosta</MenuItem>
-                  <MenuItem>Munxar</MenuItem>
-                  <MenuItem>Nadur</MenuItem>
-                  <MenuItem>Naxxar</MenuItem>
-                  <MenuItem>Paola</MenuItem>
-                  <MenuItem>Pembroke</MenuItem>
-                  <MenuItem>Pietà</MenuItem>
-                  <MenuItem>Qala</MenuItem>
-                  <MenuItem>Qormi</MenuItem>
-                  <MenuItem>Qrendi</MenuItem>
-                  <MenuItem>Rabat</MenuItem>
-                  <MenuItem>Safi</MenuItem>
-                  <MenuItem>Saint Pauls Bay</MenuItem>
-                  <MenuItem>San Lawrenz</MenuItem>
-                  <MenuItem>San Ġiljan</MenuItem>
-                  <MenuItem>San Ġwann</MenuItem>
-                  <MenuItem>Sannat</MenuItem>
-                  <MenuItem>Santa Luċija</MenuItem>
-                  <MenuItem>Santa Venera</MenuItem>
-                  <MenuItem>Senglea</MenuItem>
-                  <MenuItem>Siġġiewi</MenuItem>
-                  <MenuItem>Sliema</MenuItem>
-                  <MenuItem>Swieqi</MenuItem>
-                  <MenuItem>Tarxien</MenuItem>
-                  <MenuItem>Ta Xbiex</MenuItem>
-                  <MenuItem>Valletta</MenuItem>
-                  <MenuItem>Victoria</MenuItem>
-                  <MenuItem>Vittoriosa</MenuItem>
-                  <MenuItem>Xagħra</MenuItem>
-                  <MenuItem>Xewkija</MenuItem>
-                  <MenuItem>Xgħajra</MenuItem>
-                  <MenuItem>Ħamrun</MenuItem>
-                  <MenuItem>Żabbar</MenuItem>
-                  <MenuItem>Żebbuġ</MenuItem>
-                  <MenuItem>Żebbuġ</MenuItem>
-                  <MenuItem>Żejtun</MenuItem>
-                  <MenuItem>Żurrieq</MenuItem>
+                  <MenuItem value={"Attard"}>Attard</MenuItem>
+                  <MenuItem value={"Balzan"}>Balzan</MenuItem>
+                  <MenuItem value={"Birkirkara"}>Birkirkara</MenuItem>
+                  <MenuItem value={"Birżebbuġa"}>Birżebbuġa</MenuItem>
+                  <MenuItem value={"Cospicua"}>Cospicua</MenuItem>
+                  <MenuItem value={"Dingli"}>Dingli</MenuItem>
+                  <MenuItem value={"Fgura"}>Fgura</MenuItem>
+                  <MenuItem value={"Floriana"}>Floriana</MenuItem>
+                  <MenuItem value={"Fontana"}>Fontana</MenuItem>
+                  <MenuItem value={"Gudja"}>Gudja</MenuItem>
+                  <MenuItem value={"Għajnsielem"}>Għajnsielem</MenuItem>
+                  <MenuItem value={"Għarb"}>Għarb</MenuItem>
+                  <MenuItem value={"Għargħur"}>Għargħur</MenuItem>
+                  <MenuItem value={"Għasri"}>Għasri</MenuItem>
+                  <MenuItem value={"Għaxaq"}>Għaxaq</MenuItem>
+                  <MenuItem value={"Gżira"}>Gżira</MenuItem>
+                  <MenuItem value={"Iklin"}>Iklin</MenuItem>
+                  <MenuItem value={"Gżira"}>Il-Gżira</MenuItem>
+                  <MenuItem value={"Imdina"}>Imdina</MenuItem>
+                  <MenuItem value={"Imqabba"}>Imqabba</MenuItem>
+                  <MenuItem value={"Imsida"}>Imsida</MenuItem>
+                  <MenuItem value={"Imtarfa"}>Imtarfa</MenuItem>
+                  <MenuItem value={"Imġarr"}>Imġarr</MenuItem>
+                  <MenuItem value={"Kalkara"}>Kalkara</MenuItem>
+                  <MenuItem value={"Kerċem"}>Kerċem</MenuItem>
+                  <MenuItem value={"Kirkop"}>Kirkop</MenuItem>
+                  <MenuItem value={"Lija"}>Lija</MenuItem>
+                  <MenuItem value={"Luqa"}>Luqa</MenuItem>
+                  <MenuItem value={"Marsa"}>Marsa</MenuItem>
+                  <MenuItem value={"Marsaskala"}>Marsaskala</MenuItem>
+                  <MenuItem value={"Marsaxlokk"}>Marsaxlokk</MenuItem>
+                  <MenuItem value={"Mellieħa"}>Mellieħa</MenuItem>
+                  <MenuItem value={"Mosta"}>Mosta</MenuItem>
+                  <MenuItem value={"Munxar"}>Munxar</MenuItem>
+                  <MenuItem value={"Nadur"}>Nadur</MenuItem>
+                  <MenuItem value={"Naxxar"}>Naxxar</MenuItem>
+                  <MenuItem value={"Paola"}>Paola</MenuItem>
+                  <MenuItem value={"Pembroke"}>Pembroke</MenuItem>
+                  <MenuItem value={"Pieta"}>Pietà</MenuItem>
+                  <MenuItem value={"Qala"}>Qala</MenuItem>
+                  <MenuItem value={"Qormi"}>Qormi</MenuItem>
+                  <MenuItem value={"Qrendi"}>Qrendi</MenuItem>
+                  <MenuItem value={"Rabat"}>Rabat, Malta</MenuItem>
+                  <MenuItem value={"Safi"}>Safi</MenuItem>
+                  <MenuItem value={"Saint Pauls Bay"}>Saint Pauls Bay</MenuItem>
+                  <MenuItem value={"San Lawrenz"}>San Lawrenz</MenuItem>
+                  <MenuItem value={"San Ġiljan"}>San Ġiljan</MenuItem>
+                  <MenuItem value={"San Ġwann"}>San Ġwann</MenuItem>
+                  <MenuItem value={"Sannat"}>Sannat</MenuItem>
+                  <MenuItem value={"Santa Luċija"}>Santa Luċija</MenuItem>
+                  <MenuItem value={"Santa Venera"}>Santa Venera</MenuItem>
+                  <MenuItem value={"Senglea"}>Senglea</MenuItem>
+                  <MenuItem value={"Siġġiewi"}>Siġġiewi</MenuItem>
+                  <MenuItem value={"Sliema"}>Sliema</MenuItem>
+                  <MenuItem value={"Swieqi"}>Swieqi</MenuItem>
+                  <MenuItem value={"Tarxien"}>Tarxien</MenuItem>
+                  <MenuItem value={"Ta Xbiex"}>Ta Xbiex</MenuItem>
+                  <MenuItem value={"Valletta"}>Valletta</MenuItem>
+                  <MenuItem value={"Victoria"}>Victoria</MenuItem>
+                  <MenuItem value={"Vittoriosa"}>Vittoriosa</MenuItem>
+                  <MenuItem value={"Xagħra"}>Xagħra</MenuItem>
+                  <MenuItem value={"Xewkija"}>Xewkija</MenuItem>
+                  <MenuItem value={"Xgħajra"}>Xgħajra</MenuItem>
+                  <MenuItem value={"Ħamrun"}>Ħamrun</MenuItem>
+                  <MenuItem value={"Żabbar"}>Żabbar</MenuItem>
+                  <MenuItem value={"Żebbuġ"}>Żebbuġ</MenuItem>
+                  <MenuItem value={"Żebbuġ"}>Żebbuġ</MenuItem>
+                  <MenuItem value={"Żejtun"}>Żejtun</MenuItem>
+                  <MenuItem value={"Żurrieq"}>Żurrieq</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
@@ -201,20 +274,21 @@ export default function NewPatientPage() {
                   autoComplete="date"
                   variant="standard"
                   type="date"
-              />
+                  onChange={(e) => setNewAdmDate(Date(e.target.value))}
+              /> 
             </Grid>
             <Grid item xs={12} sm={6}>
               <FormControl sx={{ minWidth: 'calc(100%)', m: 0 }} size="large">
                 <InputLabel variant="standard" htmlFor="uncontrolled-native" sx={{ pl: 2 }}>
                   Admission Through
                 </InputLabel>
-                <Select labelId="admissionthru" id="admissionthru" label="Admission Through">
-                  <MenuItem value={1}>Internal Transfer</MenuItem>
-                  <MenuItem value={2}>Mater Dei Hospital</MenuItem>
-                  <MenuItem value={3}>Own Home</MenuItem>
-                  <MenuItem value={4}>Care Home</MenuItem>
-                  <MenuItem value={5}>Private Hospital</MenuItem>
-                  <MenuItem value={6}>Other Government Hospital</MenuItem>
+                <Select labelId="admissionthru" id="admissionthru" label="Admission Through" onChange={(e) => setNewAdmThru(e.target.value)}>
+                  <MenuItem value={"Internal Transfer"}>Internal Transfer</MenuItem>
+                  <MenuItem value={"MDH"}>Mater Dei Hospital</MenuItem>
+                  <MenuItem value={"Own Home"}>Own Home</MenuItem>
+                  <MenuItem value={"Care Home"}>Care Home</MenuItem>
+                  <MenuItem value={"Private Hospita"}>Private Hospital</MenuItem>
+                  <MenuItem value={"Other"}>Other Government Hospital</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
@@ -223,16 +297,16 @@ export default function NewPatientPage() {
                 <InputLabel variant="standard" htmlFor="uncontrolled-native" sx={{ pl: 2 }}>
                   Consultant
                 </InputLabel>
-                <Select labelId="consultant" id="consultant" label="Consultant">
-                  <MenuItem value={1}>Dr. S. Abela</MenuItem>
-                  <MenuItem value={2}>Dr. E. Bellia</MenuItem>
-                  <MenuItem value={3}>Dr. J. Cordina</MenuItem>
-                  <MenuItem value={4}>Dr. S. Dalli</MenuItem>
-                  <MenuItem value={5}>Dr. J. Dimech</MenuItem>
-                  <MenuItem value={6}>Dr. B. Farrugia</MenuItem>
-                  <MenuItem value={7}>Dr. P. Ferry</MenuItem>
-                  <MenuItem value={8}>Dr. S. La Maestra</MenuItem>
-                  <MenuItem value={9}>Dr. M. A. Vassallo</MenuItem>      
+                <Select labelId="consultant" id="consultant" label="Consultant" onChange={(e) => setNewAdmConsultant(e.target.value)}>
+                  <MenuItem value={"Dr. S. Abela"}>Dr. S. Abela</MenuItem>
+                  <MenuItem value={"Dr. E. Bellia"}>Dr. E. Bellia</MenuItem>
+                  <MenuItem value={"Dr. J. Cordina"}>Dr. J. Cordina</MenuItem>
+                  <MenuItem value={"Dr. S. Dalli"}>Dr. S. Dalli</MenuItem>
+                  <MenuItem value={"Dr. J. Dimech"}>Dr. J. Dimech</MenuItem>
+                  <MenuItem value={"Dr. B. Farrugia"}>Dr. B. Farrugia</MenuItem>
+                  <MenuItem value={"Dr. P. Ferry"}>Dr. P. Ferry</MenuItem>
+                  <MenuItem value={"Dr. S. La Maestra"}>Dr. S. La Maestra</MenuItem>
+                  <MenuItem value={"Dr. M. A. Vassallo"}>Dr. M. A. Vassallo</MenuItem>      
                 </Select>
               </FormControl>
             </Grid>
@@ -245,7 +319,7 @@ export default function NewPatientPage() {
             Reason for Admission
           </Typography>
           <Grid container spacing={3}>
-            <Grid item xs={12} sm={6}>
+            <Grid item xs={12} sm={6} onChange={(e) => setNewAdmMainDiag(e.target.value)}>
               <TextField
                 id="maindiagnosis"
                 name="maindiagnosis"
@@ -254,7 +328,7 @@ export default function NewPatientPage() {
                 variant="standard"
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid item xs={12} sm={6} onChange={(e) => setNewAdmOtherDiag(e.target.value)}>
               <TextField
                 id="otherdiagnosis"
                 name="otherdiagnosis"
@@ -272,20 +346,20 @@ export default function NewPatientPage() {
             <Typography variant="h6" gutterBottom>
               Pick Ward
             </Typography>
-            <FormControl sx={{ minWidth: 'calc(100%)', m: 0 }} size="large">
+            <FormControl sx={{ minWidth: 'calc(100%)', m: 0 }} size="large" onChange={(e) => setNewAdmWard(e.target.value)}>
               <InputLabel variant="standard" htmlFor="uncontrolled-native" sx={{ pl: 2 }}>
                 Patient's Admission Ward
               </InputLabel>
               <Select labelId="currentward" id="currentward" label="Current Ward">
-                <MenuItem value={1}>Reh Ward 1: 1 available bed</MenuItem>
-                <MenuItem value={2}>Reh Ward 2: 2 available bed</MenuItem>
+                <MenuItem value={"Reh Ward 1"}>Reh Ward 1: 1 available bed</MenuItem>
+                <MenuItem value={"Reh Ward 2"}>Reh Ward 2: 2 available bed</MenuItem>
               </Select>
             </FormControl>
           </Grid>
         </Box>
       </Container>
       <Box sx={{ display: 'flex', justifyContent: 'center', my: 3 }}>
-        <Button variant="contained" startIcon={<Iconify icon="formkit:submit" />} sx={{ mx: 2, fontSize: '1.1rem', padding: '8px 16px' }}>
+        <Button variant="contained" startIcon={<Iconify icon="formkit:submit" />} sx={{ mx: 2, fontSize: '1.1rem', padding: '8px 16px' }} onClick={onSubmitPatientDetails}>
           Submit Details
         </Button>
       </Box>

@@ -9,6 +9,7 @@ import Iconify from '../../../components/iconify';
 //
 import Searchbar from './Searchbar';
 import AccountPopover from './AccountPopover';
+
 import NotificationsPopover from './NotificationsPopover';
 
 // ----------------------------------------------------------------------
@@ -67,9 +68,10 @@ export default function Header({ onOpenNav }) {
             sm: 1,
           }}
         >
-          {/* <LanguagePopover /> */}
-          <NotificationsPopover />
-          <AccountPopover />
+          <NotificationsPopover/>
+          <Box sx={{ marginLeft: 1 }}>
+            <AccountPopover />
+          </Box>
         </Stack>
       </StyledToolbar>
     </StyledRoot>

@@ -1,11 +1,9 @@
 import PropTypes from 'prop-types';
-// @mui
 import { styled, alpha } from '@mui/material/styles';
 import { Toolbar, Tooltip, IconButton, Typography, OutlinedInput, InputAdornment } from '@mui/material';
-// component
+import { useEffect, useState } from 'react';
+import { getDocs, collection, query, where, getFirestore } from 'firebase/firestore';
 import Iconify from '../../../components/iconify';
-
-// ----------------------------------------------------------------------
 
 const StyledRoot = styled(Toolbar)(({ theme }) => ({
   height: 96,
@@ -30,8 +28,6 @@ const StyledSearch = styled(OutlinedInput)(({ theme }) => ({
   },
 }));
 
-// ----------------------------------------------------------------------
-
 UserListToolbar.propTypes = {
   numSelected: PropTypes.number,
   filterName: PropTypes.string,
@@ -39,6 +35,43 @@ UserListToolbar.propTypes = {
 };
 
 export default function UserListToolbar({ numSelected, filterName, onFilterName }) {
+  const [searchText, setSearchText] = useState('');
+
+  useEffect(() => {
+    const searchPatients = async () => {
+      const db = getFirestore();
+      const patientsRef = collection(db, 'patients');
+  
+      const filteredPatients = [];
+  
+      if (searchText !== '') {
+        const q = query(
+          patientsRef,
+          where('FirstName', '==', searchText),
+        );
+  
+        const querySnapshot = await getDocs(q);
+        querySnapshot.forEach((doc) => {
+          const patientData = doc.data();
+          if (
+            patientData.FirstName.includes(searchText) ||
+            patientData.LastName.includes(searchText)
+          ) {
+            filteredPatients.push(patientData);
+          }
+        });
+      }
+  
+      onFilterName(filteredPatients);
+    };
+  
+    searchPatients();
+  }, [searchText, onFilterName]);
+
+  const handleSearchTextChange = (event) => {
+    setSearchText(event.target.value);
+  };
+
   return (
     <StyledRoot
       sx={{
@@ -54,8 +87,8 @@ export default function UserListToolbar({ numSelected, filterName, onFilterName 
         </Typography>
       ) : (
         <StyledSearch
-          value={filterName}
-          onChange={onFilterName}
+          value={searchText}
+          onChange={handleSearchTextChange}
           placeholder="Search patients..."
           startAdornment={
             <InputAdornment position="start">

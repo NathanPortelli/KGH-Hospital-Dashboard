@@ -1,7 +1,6 @@
 import { Helmet } from 'react-helmet-async';
 import { filter } from 'lodash';
-import { sentenceCase } from 'change-case';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 // @mui
 import {
@@ -20,15 +19,17 @@ import {
   IconButton,
   TableContainer,
   TablePagination,
+  TextField,
 } from '@mui/material';
 // components
+import { getDocs, collection } from 'firebase/firestore';
 import Label from '../components/label';
 import Iconify from '../components/iconify';
 import Scrollbar from '../components/scrollbar';
 // sections
 import { UserListHead, UserListToolbar } from '../sections/@dashboard/user';
 // mock
-import USERLIST from '../_mock/user';
+import { auth, db } from '../config/firebase';
 
 // ----------------------------------------------------------------------
 
@@ -69,24 +70,43 @@ function applySortFilter(array, comparator, query) {
     return a[1] - b[1];
   });
   if (query) {
-    return filter(array, (_user) => _user.name.toLowerCase().indexOf(query.toLowerCase()) !== -1);
+    return filter(array, (_user) => {
+      const { IDNum, FirstName, LastName } = _user;
+      const searchText = query.toLowerCase();
+      return (
+        IDNum.toLowerCase().indexOf(searchText) !== -1 ||
+        FirstName.toLowerCase().indexOf(searchText) !== -1 ||
+        LastName.toLowerCase().indexOf(searchText) !== -1
+      );
+    });
   }
   return stabilizedThis.map((el) => el[0]);
 }
 
 export default function UserPage() {
+  const [patientList, setPatientList] = useState([]);
+  const patientCollectionRef = collection(db, 'patients');
+
+  useEffect(() => {
+    const getPatientList = async () => {
+      try {
+        const data = await getDocs(patientCollectionRef);
+        const filteredData = data.docs.map((doc) => ({ ...doc.data(), id: doc.id }));
+        setPatientList(filteredData);
+      } catch (e) {
+        console.error(e);
+      }
+    };
+
+    getPatientList();
+  }, []);
+
   const [open, setOpen] = useState(null);
-
   const [page, setPage] = useState(0);
-
   const [order, setOrder] = useState('asc');
-
   const [selected, setSelected] = useState([]);
-
   const [orderBy, setOrderBy] = useState('name');
-
   const [filterName, setFilterName] = useState('');
-
   const [rowsPerPage, setRowsPerPage] = useState(5);
 
   const handleOpenMenu = (event) => {
@@ -105,7 +125,7 @@ export default function UserPage() {
 
   const handleSelectAllClick = (event) => {
     if (event.target.checked) {
-      const newSelecteds = USERLIST.map((n) => n.name);
+      const newSelecteds = patientList.map((n) => n.FirstName);
       setSelected(newSelecteds);
       return;
     }
@@ -122,8 +142,9 @@ export default function UserPage() {
   };
 
   const handleFilterByName = (event) => {
+    const searchText = event.target?.value || ''; // optional chaining
     setPage(0);
-    setFilterName(event.target.value);
+    setFilterName(searchText);
   };
 
   const navigate = useNavigate();
@@ -132,16 +153,16 @@ export default function UserPage() {
     navigate('/dashboard/patient');
   };
 
-  const emptyRows = page > 0 ? Math.max(0, (1 + page) * rowsPerPage - USERLIST.length) : 0;
+  const emptyRows = page > 0 ? Math.max(0, (1 + page) * rowsPerPage - patientList.length) : 0;
 
-  const filteredUsers = applySortFilter(USERLIST, getComparator(order, orderBy), filterName);
+  const filteredPatients = applySortFilter(patientList, getComparator(order, orderBy), filterName);
 
-  const isNotFound = !filteredUsers.length && !!filterName;
+  const isNotFound = !filteredPatients.length && !!filterName;
 
   return (
     <>
       <Helmet>
-        <title> Patient List | KGH </title>
+        <title>Patient List | KGH</title>
       </Helmet>
 
       <Container>
@@ -164,34 +185,28 @@ export default function UserPage() {
                   order={order}
                   orderBy={orderBy}
                   headLabel={TABLE_HEAD}
-                  rowCount={USERLIST.length}
+                  rowCount={patientList.length}
                   numSelected={selected.length}
                   onRequestSort={handleRequestSort}
                   onSelectAllClick={handleSelectAllClick}
                 />
                 <TableBody>
-                  {filteredUsers.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((row) => {
-                    const { id, name, gender, admissiondate, ward, status, consultant} = row;
-                    const selectedUser = selected.indexOf(name) !== -1;
+                  {filteredPatients.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((row) => {
+                    const { id, IDNum, FirstName, LastName, Sex } = row;
+                    const selectedUser = selected.indexOf(FirstName) !== -1;
 
                     return (
                       <TableRow hover key={id} tabIndex={-1} role="checkbox" selected={selectedUser}>
                         <TableCell component="th" scope="row" padding-left="7px">
                           <Stack direction="row" alignItems="center" spacing={2}>
                             <Typography variant="subtitle2" noWrap>
-                              {id}
+                              {IDNum}
                             </Typography>
                           </Stack>
                         </TableCell>
-                        <TableCell align="left">{name}</TableCell>
-                        <TableCell align="left">{gender}</TableCell>
-                        <TableCell align="left">{admissiondate}</TableCell>
-                        <TableCell align="left">{consultant}</TableCell>
-
-                        <TableCell align="left">{ward}</TableCell>
-                        <TableCell align="left">
-                          <Label color={(status === 'Low' && 'error') || 'success'}>{sentenceCase(status)}</Label>
-                        </TableCell>
+                        <TableCell align="left">{FirstName} {LastName}</TableCell>
+                        <TableCell align="left">{Sex}</TableCell>
+                        {/* TO ADD: OTHER FIELDS */}
                         <TableCell align="right">
                           <IconButton size="large" color="inherit" onClick={handleOpenMenu}>
                             <Iconify icon={'eva:more-vertical-fill'} />
@@ -237,7 +252,7 @@ export default function UserPage() {
           <TablePagination
             rowsPerPageOptions={[5, 10, 25]}
             component="div"
-            count={USERLIST.length}
+            count={patientList.length}
             rowsPerPage={rowsPerPage}
             page={page}
             onPageChange={handleChangePage}

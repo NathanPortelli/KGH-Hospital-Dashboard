@@ -2,27 +2,54 @@ import { useState,useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 
+import { format } from 'date-fns';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+
 // @mui
 import { Grid, Button, Container, Stack, Typography, TextField, InputLabel, Input, FormControl, Select, MenuItem, Box } from '@mui/material';
 
-import { addDoc, collection, getDocs, query, where } from 'firebase/firestore';
+import { getDocs, doc, updateDoc, addDoc, collection } from 'firebase/firestore';
 import { db, auth } from '../config/firebase';
 import Iconify from '../components/iconify';
 
 // ----------------------------------------------------------------------
 
-const handleAgeInputChange = (event) => {
-  const inputValue = event.target.value;
-  const truncatedValue = inputValue.slice(0, 3);
-  event.target.value = truncatedValue;
-};
-
-// ----------------------------------------------------------------------
-  
 export default function NewPatientPage() {
   const navigate = useNavigate();
+
+  const [wards, setWards] = useState([]);
+
+  useEffect(() => {
+    const fetchWards = async () => {
+      const wardsCollectionRef = collection(db, 'wards');
+      const wardsSnapshot = await getDocs(wardsCollectionRef);
+      const wardsData = wardsSnapshot.docs.map((doc) => doc.data());
+      setWards(wardsData);
+    };
+
+    fetchWards();
+  }, []);
+
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      if (user) {
+        // User is logged in
+        setIsAuthenticated(true);
+      } else {
+        // User is logged out
+        setIsAuthenticated(false);
+      }
+    });
+    // Unsubscribe from the authentication listener when the component unmounts
+    return () => unsubscribe();
+  }, []);
 
   const [newFirstName, setNewFirstName] = useState("");
   const [newLastName, setNewLastName] = useState("");
@@ -30,9 +57,9 @@ export default function NewPatientPage() {
   const [newSex, setNewSex] = useState("");
   const [newLocality, setNewLocality] = useState("");
   const [newAge, setNewAge] = useState(0);
-  const [newDOB, setNewDOB] = useState(0);
+  const [newDOB, setNewDOB] = useState("");
 
-  const [newAdmDate, setNewAdmDate] = useState(0);
+  const [newAdmDate, setNewAdmDate] = useState("");
   const [newAdmThru, setNewAdmThru] = useState("");
   const [newAdmConsultant, setNewAdmConsultant] = useState("");
   const [newAdmMainDiag, setNewAdmMainDiag] = useState("");
@@ -40,24 +67,101 @@ export default function NewPatientPage() {
   const [newAdmWard, setNewAdmWard] = useState("");
 
   const patientCollectionRef = collection(db, "patients");
-  const admissionCollectionRef = collection(db, "patientadmdetails")
+
+  const setFormattedDOB = (dateString) => {
+    const dateDOB = new Date(dateString);
+    const formattedDateDOB = format(dateDOB, 'yyyy-MM-dd');
+    setNewDOB(formattedDateDOB);
+  };
+  
+  const setFormattedAdmDate = (dateString) => {
+    const date = new Date(dateString);
+    const formattedDate = format(date, 'yyyy-MM-dd');
+    setNewAdmDate(formattedDate);
+  };
+
+  // VALIDATIONS
+  const [fieldValidity, setFieldValidity] = useState({
+    firstName: true,
+    lastName: true,
+    idNum: true,
+    age: true,
+    dob: true,
+  });
+
+  const isFirstNameValid = (firstName) => {
+    const regex = /^[A-Za-z.-]+$/;
+    return regex.test(firstName);
+  };
+  useEffect(() => {
+    const isValid = isFirstNameValid(newFirstName);
+    setFieldValidity((prevState) => ({ ...prevState, firstName: isValid }));
+  }, [newFirstName]);
+
+  const isLastNameValid = (lastName) => {
+    const regex = /^[A-Za-z.-]+$/;
+    return regex.test(lastName);
+  };
+  useEffect(() => {
+    const isValid = isLastNameValid(newLastName);
+    setFieldValidity((prevState) => ({ ...prevState, lastName: isValid }));
+  }, [newLastName]);
+  
+  const isIDNumValid = (idNum) => {
+    const regex = /^\d+[A-Za-z]$/;
+    return regex.test(idNum);
+  };
+  useEffect(() => {
+    const isValid = isIDNumValid(newIDNum);
+    setFieldValidity((prevState) => ({ ...prevState, idNum: isValid }));
+  }, [newIDNum]);  
+
+  const isAgeValid = (age) => {
+    const parsedAge = parseInt(age, 10);
+    return !Number.isNaN(parsedAge) && parsedAge >= 0 && parsedAge <= 120;
+  };
+  useEffect(() => {
+    const isValid = isAgeValid(newAge);
+    setFieldValidity((prevState) => ({ ...prevState, age: isValid }));
+  }, [newAge]);  
+  
+  const isDOBValid = (dob) => {
+    const minDate = new Date('1900-01-01');
+    const maxDate = new Date('2023-01-01');
+    const inputDate = new Date(dob);
+    return inputDate >= minDate && inputDate <= maxDate;
+  };
+  useEffect(() => {
+    const isValid = isDOBValid(newDOB);
+    setFieldValidity((prevState) => ({ ...prevState, dob: isValid }));
+  }, [newDOB]); 
+  
+  const isAdminDateValid = (admDate) => {
+    const minDate = new Date('2017-01-01');
+    const maxDate = new Date('2025-01-01');
+    const inputDate = new Date(admDate);
+    return inputDate >= minDate && inputDate <= maxDate;
+  };
+  useEffect(() => {
+    const isValid = isAdminDateValid(newAdmDate);
+    setFieldValidity((prevState) => ({ ...prevState, admDate: isValid }));
+  }, [newAdmDate]); 
+  // END OF VALIDATIONS
   
   const onSubmitPatientDetails = async () => {
     if (
-      newFirstName === '' ||
-      newLastName === '' ||
-      newIDNum === '' ||
-      newSex === '' ||
-      newAge === 0 ||
-      newDOB === 0 ||
-      newLocality === ''
+      !fieldValidity.firstName ||
+      !fieldValidity.lastName ||
+      !fieldValidity.idNum ||
+      !fieldValidity.age ||
+      !fieldValidity.dob
     ) {
-      toast.error('Please fill in all fields.');
+      toast.error('Please make sure to fill in all the fields properly.');
       return;
     }
   
     try {
-      await addDoc(patientCollectionRef, {
+      const newPatientDocRef = await addDoc(patientCollectionRef, {
         FirstName: newFirstName,
         LastName: newLastName,
         IDNum: newIDNum,
@@ -66,24 +170,29 @@ export default function NewPatientPage() {
         DOB: newDOB,
         Locality: newLocality,
       });
-
-      await addDoc(admissionCollectionRef, {
-        IDNum: newIDNum,
-        AdmissionThru: newAdmThru,
-        AdmissionWard: newAdmWard,
-        AdmitDate: newAdmDate,
-        Consultant: newAdmConsultant,
-        MainDiagnosis: newAdmMainDiag,
-        OtherDiagnosis: newAdmOtherDiag,
+  
+      await updateDoc(doc(db, "patients", newPatientDocRef.id), {
+        admissiondetails: {
+          AdmissionThru: newAdmThru,
+          AdmissionWard: newAdmWard,
+          AdmitDate: newAdmDate,
+          Consultant: newAdmConsultant,
+          MainDiagnosis: newAdmMainDiag,
+          OtherDiagnosis: newAdmOtherDiag,
+        },
       });
   
       toast.success('Patient details submitted successfully!');
       navigate('/dashboard/patientlist');
     } catch (e) {
       toast.error('An error occurred while submitting the details. Please try again.');
-    }    
-  };
+    }
+  };  
 
+  if (!isAuthenticated) {
+    navigate('/login');
+    return null;
+  }
   return (
     <>
       <Helmet>
@@ -97,34 +206,38 @@ export default function NewPatientPage() {
           </Typography>
         </Stack>
 
-        <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: '10px', p: 3, backgroundColor: 'white' }}>
+        <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: '10px', p: 3, backgroundColor: 'grey.200' }}>
           <Typography variant="h6" gutterBottom>
             Personal Details
           </Typography>
           <Grid container spacing={3}>
             <Grid item xs={12} sm={6}>
-              <TextField
-                required
-                id="firstName"
-                name="firstName"
-                label="First Name"
-                fullWidth
-                autoComplete="given-name"
-                variant="standard"
-                onChange={(e) => setNewFirstName(e.target.value)}
-              />
+            <TextField
+              required
+              id="firstName"
+              name="firstName"
+              label="First Name"
+              fullWidth
+              autoComplete="given-name"
+              variant="standard"
+              onChange={(e) => setNewFirstName(e.target.value)}
+              error={!fieldValidity.firstName}
+              helperText={!fieldValidity.firstName && "Use only letters, '.', or '-'"}
+            />
             </Grid>
             <Grid item xs={12} sm={6}>
-              <TextField
-                required
-                id="lastName"
-                name="lastName"
-                label="Last Name"
-                fullWidth
-                autoComplete="family-name"
-                variant="standard"
-                onChange={(e) => setNewLastName(e.target.value)}
-              />
+            <TextField
+              required
+              id="lastName"
+              name="lastName"
+              label="Last Name"
+              fullWidth
+              autoComplete="family-name"
+              variant="standard"
+              onChange={(e) => setNewLastName(e.target.value)}
+              error={!fieldValidity.lastName}
+              helperText={!fieldValidity.lastName && "Use only letters, '.', or '-'"}
+            />
             </Grid>
             <Grid item xs={12} sm={12}>
               <TextField
@@ -136,6 +249,8 @@ export default function NewPatientPage() {
                 autoComplete="idnum"
                 variant="standard"
                 onChange={(e) => setNewIDNum(e.target.value)}
+                error={!fieldValidity.idNum}
+                helperText={!fieldValidity.idNum && "The format should be numbers, followed by a letter."}
               />
             </Grid> 
             <Grid item xs={12} sm={6}>
@@ -147,21 +262,16 @@ export default function NewPatientPage() {
               autoComplete="age"
               variant="standard"
               type="number"
-              inputProps={{ max: 120, inputComponent: Input }}
+              inputProps={{ max: 120, inputcomponent: Input }}
               onChange={(e) => setNewAge(Number(e.target.value))}
+              error={!fieldValidity.age}
+              helperText={!fieldValidity.age && "Please input only numbers between 0 and 120."}
             />
             </Grid>
             <Grid item xs={12} sm={6}>
-              <InputLabel sx={{ fontSize: '12px' }}>Date of Birth</InputLabel>
-              <TextField
-                  id="dob"
-                  name="dob"
-                  fullWidth
-                  autoComplete="date"
-                  variant="standard"
-                  type="date"
-                  onChange={(e) => setNewDOB(Date(e.target.value))}
-              />
+              <LocalizationProvider dateAdapter={AdapterDayjs}>
+                <DatePicker id="dob" name="dob" slotProps={{ textField: { fullWidth: true } }} format="DD-MM-YYYY" label="Date of Birth" onChange={(date) => setFormattedDOB(date)} error={!fieldValidity.dob} helperText={!fieldValidity.dob && "Please input a valid date."}/>
+              </LocalizationProvider>
             </Grid>
             <Grid item xs={12} sm={6}>
               <FormControl sx={{ minWidth: 'calc(100%)', m: 0 }} size="large">
@@ -260,22 +370,15 @@ export default function NewPatientPage() {
           </Grid>
         </Box>
 
-        <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: '10px', mt:5, p: 3, backgroundColor: 'white' }}>
+        <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: '10px', mt:5, p: 3, backgroundColor: 'grey.200' }}>
           <Typography variant="h6" gutterBottom>
             Admission Details
           </Typography>
           <Grid container spacing={3}>
             <Grid item xs={12}>
-              <InputLabel sx={{ fontSize: '12px' }}>Admission Date</InputLabel>
-              <TextField
-                  id="admissiondate"
-                  name="admissiondate"
-                  fullWidth
-                  autoComplete="date"
-                  variant="standard"
-                  type="date"
-                  onChange={(e) => setNewAdmDate(Date(e.target.value))}
-              /> 
+              <LocalizationProvider dateAdapter={AdapterDayjs}>
+                <DatePicker id="admissiondate" name="admissiondate" slotProps={{ textField: { fullWidth: true } }} format="DD-MM-YYYY" label="Admission Date" onChange={(date) => setFormattedAdmDate(date)} error={!fieldValidity.admDate} helperText={!fieldValidity.admDate && "Please input only numbers between 0 and 120."}/>
+              </LocalizationProvider>
             </Grid>
             <Grid item xs={12} sm={6}>
               <FormControl sx={{ minWidth: 'calc(100%)', m: 0 }} size="large">
@@ -313,8 +416,7 @@ export default function NewPatientPage() {
           </Grid>
         </Box>
 
-
-        <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: '10px', mt:5, p: 3, backgroundColor: 'white' }}>
+        <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: '10px', mt:5, p: 3, backgroundColor: 'grey.200' }}>
           <Typography variant="h6" gutterBottom>
             Reason for Admission
           </Typography>
@@ -340,19 +442,28 @@ export default function NewPatientPage() {
           </Grid>
         </Box>
 
-
-        <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: '10px', mt:5, p: 3, backgroundColor: 'white' }}>
+        <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: '10px', mt: 5, p: 3, backgroundColor: 'grey.200' }}>
           <Grid>
             <Typography variant="h6" gutterBottom>
               Pick Ward
             </Typography>
-            <FormControl sx={{ minWidth: 'calc(100%)', m: 0 }} size="large" onChange={(e) => setNewAdmWard(e.target.value)}>
+            <FormControl sx={{ minWidth: 'calc(100%)', m: 0 }} size="large">
               <InputLabel variant="standard" htmlFor="uncontrolled-native" sx={{ pl: 2 }}>
-                Patient's Admission Ward
+                Current Ward
               </InputLabel>
-              <Select labelId="currentward" id="currentward" label="Current Ward">
-                <MenuItem value={"Reh Ward 1"}>Reh Ward 1: 1 available bed</MenuItem>
-                <MenuItem value={"Reh Ward 2"}>Reh Ward 2: 2 available bed</MenuItem>
+              <Select labelId="currentward" id="currentward" label="Current Ward" onChange={(e) => setNewAdmWard(e.target.value)}>
+                {wards
+                  .sort((a, b) => a.wardno - b.wardno)
+                  .map((ward) => (
+                    <MenuItem
+                      key={ward.wardno}
+                      value={ward.wardno}
+                      disabled={ward.available === 0}
+                      sx={{ color: ward.available === 0 ? 'red' : 'inherit' }}
+                    >
+                      {`Reh Ward ${ward.wardno}: ${ward.available} available beds`}
+                    </MenuItem>
+                  ))}
               </Select>
             </FormControl>
           </Grid>

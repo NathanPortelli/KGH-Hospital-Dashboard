@@ -33,15 +33,14 @@ export default function Page404() {
             sx={{ height: 260, mx: 'auto', my: { xs: 5, sm: 10 } }}
           />
           <Typography variant="h3" paragraph>
-            Sorry, page not found!
+            Looks like you're lost
           </Typography>
 
           <Typography sx={{ color: 'text.secondary', mb: 5 }}>
-            Sorry, we couldn’t find the page you’re looking for. Perhaps you’ve mistyped the URL? Be sure to check your
-            spelling.
+            The page you're looking for doesn't seem to exist.
           </Typography>
           <Button to="/" size="large" variant="contained" component={RouterLink}>
-            Go to Dashboard
+            Resuscitate Yourself 
           </Button>
         </StyledContent>
       </Container>

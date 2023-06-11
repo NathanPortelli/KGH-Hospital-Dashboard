@@ -1,5 +1,6 @@
 import { Helmet } from 'react-helmet-async';
-import { useState, useEffect } from 'react';
+import { useState,useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 // @mui
 import {
@@ -17,6 +18,9 @@ import {
   AccordionDetails
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+
+import { addDoc, collection, getDocs, query, where } from 'firebase/firestore';
+import { db, auth } from '../config/firebase';
 
 // ----------------------------------------------------------------------
 
@@ -42,6 +46,23 @@ const antecedentsOptions = [
 ];
 
 export default function AnalyticsPage() {
+  const navigate = useNavigate();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      if (user) {
+        // User is logged in
+        setIsAuthenticated(true);
+      } else {
+        // User is logged out
+        setIsAuthenticated(false);
+      }
+    });
+    // Unsubscribe from the authentication listener when the component unmounts
+    return () => unsubscribe();
+  }, []);
+
   const [openFilter, setOpenFilter] = useState(false);
   const [selectedItems, setSelectedItems] = useState([]);
   const [associationRulesData, setAssociationRulesData] = useState(null); // Updated
@@ -105,6 +126,11 @@ export default function AnalyticsPage() {
   useEffect(() => {
     setAssociationRulesData(associationRulesData);
   }, []);
+
+  if (!isAuthenticated) {
+    navigate('/login');
+    return null;
+  }
   return (
     <>
       <Helmet>

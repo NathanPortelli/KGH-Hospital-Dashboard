@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 // @mui
-import { alpha } from '@mui/material/styles';
 import { Grid, Box, Divider, Typography, Stack, MenuItem, Avatar, IconButton, Popover } from '@mui/material';
 
 import { collection, getDocs, query, where } from 'firebase/firestore';
@@ -32,6 +31,7 @@ const MENU_OPTIONS = [
 
 export default function AccountPopover() {
   const [userName, setUserName] = useState([]);
+
   const userCollectionRef = collection(db, "users");
   const navigate = useNavigate();
 
@@ -45,12 +45,19 @@ export default function AccountPopover() {
           const user = querySnapshot.docs[0].data();
           const { name, designation } = user;
           setUserName({ name, designation });
+          localStorage.setItem('userName', JSON.stringify({ name, designation })); // Store in local storage
         }
       } catch (e) {
         console.error(e);
       }
     };
-    getUserName();
+
+    const storedUserName = localStorage.getItem('userName');
+    if (storedUserName) {
+      setUserName(JSON.parse(storedUserName));
+    } else {
+      getUserName();
+    }
   }, []);
 
   const [open, setOpen] = useState(null);
@@ -65,11 +72,13 @@ export default function AccountPopover() {
 
   const handleLogout = () => {
     const auth = getAuth();
-    signOut(auth).then(() => {
-      navigate('/login', { replace: true });
-    }).catch((error) => {
-      toast.error('An error occurred while signing out. Please refresh and try again.');
-    });
+    signOut(auth)
+      .then(() => {
+        navigate('/login', { replace: true });
+      })
+      .catch((error) => {
+        toast.error('An error occurred while signing out. Please refresh and try again.');
+      });
   };
 
   return (
@@ -101,7 +110,6 @@ export default function AccountPopover() {
                   height: '100%',
                   borderRadius: '50%',
                   position: 'absolute',
-                  bgcolor: (theme) => alpha(theme.palette.grey[900], 0.8),
                 },
               }),
             }}
@@ -111,8 +119,8 @@ export default function AccountPopover() {
         </Grid>
         <Grid item>
           <Stack direction="column" alignItems="flex-start" spacing={0} sx={{ ml: 1 }}>
-          <Typography sx={{ color: "#04297A" }}>{userName.name}</Typography>
-          <Typography sx={{ textAlign: 'right', color: "#04297A", fontSize: "12px", textTransform: 'uppercase' }}>{userName.designation}</Typography>
+            <Typography sx={{ color: "#04297A" }}>{userName.name}</Typography>
+            <Typography sx={{ textAlign: 'right', color: "#04297A", fontSize: "12px", textTransform: 'uppercase' }}>{userName.designation}</Typography>
           </Stack>
         </Grid>
       </Grid>

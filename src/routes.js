@@ -24,7 +24,7 @@ export default function Router() {
         { path: 'patientlist', element: <PatientListPage /> },
         { path: 'analytics', element: <AnalyticsPage /> },
         { path: 'newpatient', element: <NewPatientPage /> },
-        { path: 'patient', element: <PatientPage /> },
+        { path: 'patient/:idNum', element: <PatientPage /> },
       ],
     },
     {
@@ -34,7 +34,7 @@ export default function Router() {
     {
       element: <SimpleLayout />,
       children: [
-        { element: <Navigate to="/dashboard/app" />, index: true },
+        { element: <Navigate to="/login" />, index: true },
         { path: '404', element: <Page404 /> },
         { path: '*', element: <Navigate to="/404" /> },
       ],

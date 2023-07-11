@@ -1,136 +1,68 @@
 import { Helmet } from 'react-helmet-async';
 import { useState,useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import Select from "react-select";
 
 // @mui
-import {
-  Grid,
-  Button,
-  Container,
-  Typography,
-  InputLabel,
-  FormControl,
-  Select,
-  MenuItem,
-  Chip,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails
-} from '@mui/material';
+import { Grid, Button, Container, Typography, Paper, TableContainer, Table, TableHead, TableRow, TableCell, TableBody, Accordion, AccordionSummary, AccordionDetails } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 
-import { addDoc, collection, getDocs, query, where } from 'firebase/firestore';
-import { db, auth } from '../config/firebase';
+import { auth } from '../config/firebase';
+import associationData from '../sections/@dashboard/algorithms/associationData';
 
 // ----------------------------------------------------------------------
-
-const associationRulesData = `
-  Antecedents,Consequents,Support,Confidence,Lift,Leverage,Conviction,Zhang's Metric
-  Stairs,Bathing,0.911359725,0.95148248,1.022777652,0.020296332,1.436746988,0.528126265
-  Bathing,Stairs,0.911359725,0.979648474,1.022777652,0.020296332,2.072015334,0.31948379
-  Dressing,Stairs,0.723752151,0.996445498,1.040314167,0.028046783,11.86345382,0.141602914
-  Dressing,Bathing,0.720309811,0.991706161,1.066015318,0.044606753,8.404720925,0.226287355
-`;
-
-const antecedentsOptions = [
-  { value: 'Bowels ', label: 'Bowels' },
-  { value: 'Transferring ', label: 'Transferring' },
-  { value: 'Bladder ', label: 'Bladder' },
-  { value: 'Mobility ', label: 'Mobility' },
-  { value: 'Grooming ', label: 'Grooming' },
-  { value: 'Dressing ', label: 'Dressing' },
-  { value: 'Toilet Use ', label: 'Toilet Use' },
-  { value: 'Stairs ', label: 'Stairs' },
-  { value: 'Feeding Use ', label: 'Feeding Use' },
-  { value: 'Bathing ', label: 'Bathing' }
-];
 
 export default function AnalyticsPage() {
   const navigate = useNavigate();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [foundAssociations, setFoundAssociations] = useState([]);
+  const [isButtonClicked, setIsButtonClicked] = useState(false); // test | So "no association found" text would only be visible when user click button
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
       if (user) {
-        // User is logged in
-        setIsAuthenticated(true);
+        setIsAuthenticated(true); // User is logged in
       } else {
-        // User is logged out
-        setIsAuthenticated(false);
+        setIsAuthenticated(false); // User is logged out
       }
     });
-    // Unsubscribe from the authentication listener when the component unmounts
-    return () => unsubscribe();
+    return () => unsubscribe(); // Unsubscribe from the authentication listener when the component unmounts
   }, []);
 
-  const [openFilter, setOpenFilter] = useState(false);
-  const [selectedItems, setSelectedItems] = useState([]);
-  const [associationRulesData, setAssociationRulesData] = useState(null); // Updated
+  const [optionsAmount, setOptionsAmount] = useState([]);
 
-  const handleMenuItemSelect = (event) => {
-    const value = event.target.value;
-    setSelectedItems((prevSelectedItems) => {
-      const exists = prevSelectedItems.includes(value);
-      if (!exists && prevSelectedItems.length < 3) {
-        return [...prevSelectedItems, value];
-      }
-      if (exists) {
-        return prevSelectedItems.filter((item) => item !== value);
-      }
-      return prevSelectedItems;
-    });
+  const options = [
+    { value: 'Bowels', label: 'Bowels' },
+    { value: 'Transferring', label: 'Transferring', isDisabled: 'true' },
+    { value: 'Bladder', label: 'Bladder' },
+    { value: 'Mobility', label: 'Mobility' },
+    { value: 'Dressing', label: 'Dressing' },
+    { value: 'Toilet Use', label: 'Toilet Use' },
+    { value: 'Stairs', label: 'Stairs' },
+    { value: 'Feeding', label: 'Feeding', isDisabled: 'true' },
+    { value: 'Bathing', label: 'Bathing' }
+  ];
+
+  const sortedAssociations = foundAssociations.sort(
+    (a, b) => b.Support - a.Support
+  );
+
+  const findAssociations = () => {
+    const selectedAntecedents = optionsAmount.map((option) => option.value);
+    const filteredAssociations = associationData.filter((association) =>
+      selectedAntecedents.every((antecedent) =>
+        association.Antecedents.includes(antecedent)
+      )
+    );
+    setFoundAssociations(filteredAssociations);
+    setIsButtonClicked(true);
   };
-
-  const handleClearSelection = () => {
-    setSelectedItems([]);
-  };
-
-  const handleFindRules = () => {
-    const selectedAntecedents = selectedItems;
-    const associationRules = parseAssociationRules();
-
-    // Filter association rules based on selected antecedents
-    const filteredRules = associationRules.filter((rule) => {
-      const ruleAntecedents = rule.Antecedents.split(',');
-      return selectedAntecedents.every((antecedent) =>
-        ruleAntecedents.includes(antecedent.trim())
-      );
-    });
-
-    // Display or process the filtered rules as desired
-    console.log('Filtered Rules:', filteredRules);
-  };
-
-  const parseAssociationRules = () => {
-    if (associationRulesData) {
-      const lines = associationRulesData.trim().split('\n');
-      const headers = lines[0].split(',');
-
-      const associationRules = lines.slice(1).map((line) => {
-        const values = line.split(',');
-        const rule = {};
-
-        headers.forEach((header, index) => {
-          rule[header.trim()] = values[index].trim();
-        });
-
-        return rule;
-      });
-
-      return associationRules;
-    }
-
-    return [];
-  };
-
-  useEffect(() => {
-    setAssociationRulesData(associationRulesData);
-  }, []);
 
   if (!isAuthenticated) {
     navigate('/login');
     return null;
   }
+
   return (
     <>
       <Helmet>
@@ -142,182 +74,76 @@ export default function AnalyticsPage() {
           Predictive Analytics
         </Typography>
 
-        {/* Antecent Input for FP-Growth Alg */}  
-
-        <Accordion sx={{borderRadius: '10px', mb: 1 }}>
-          <AccordionSummary expandIcon={<ExpandMoreIcon />} aria-controls="panel1a-content" id="panel1a-header">
-            <Typography variant="h6">FP-Growth: Antecedents</Typography>
+        <Accordion sx={{borderRadius: '10px', backgroundColor: '#f5f5f5', mb: 5 }}>
+          <AccordionSummary expandIcon={<ExpandMoreIcon />} aria-controls="panel2a-content" id="panel2a-header">
+            <Typography variant="h4">Barthel ADL Predictions</Typography>
           </AccordionSummary>
           <AccordionDetails>
-            <Grid container spacing={3}>
-            <Grid item xs={12}>
-              <FormControl fullWidth size="large">
-                <Select
-                  labelId="sex"
-                  id="sex"
-                  label="Sex"
-                  multiple
-                  value={selectedItems}
-                  onChange={handleMenuItemSelect}
-                  renderValue={(selected) => {
-                    if (selected.length === 0) {
-                      return <Typography>Select Antecedents</Typography>;
-                    }
-                    return <Chip key={selected[selected.length - 1]} label={selected[selected.length - 1]} />;
-                  }}
-                >
-                  {antecedentsOptions.map((option) => (
-                    <MenuItem key={option.value} value={option.value}>
-                      {option.label}
-                    </MenuItem>
-                  ))}
-                </Select>
-                <Button onClick={handleClearSelection}>Clear Selection</Button>
-                <br />
-                <Button onClick={handleFindRules} variant="contained">
-                  Find Rules
-                </Button>
-              </FormControl>
-            </Grid>
-            </Grid>
+            <div>
+              <iframe style={{border: '0px'}} title="myFrame" height="1300px" width="100%" src="http://127.0.0.1:5000/" />      
+            </div>
           </AccordionDetails>
         </Accordion>
 
-        {/* Admission Results Input for Random Forest / Gradient Boosting */}  
-                
-        <Accordion sx={{borderRadius: '10px', mb: 3 }}>
+        <Accordion sx={{ borderRadius: '10px', backgroundColor: '#f5f5f5', mb: 5 }}>
           <AccordionSummary expandIcon={<ExpandMoreIcon />} aria-controls="panel2a-content" id="panel2a-header">
-            <Typography variant="h6">Barthel ADL Predictions - Admission Results</Typography>
+            <Typography variant="h4">Barthel ADL Associations</Typography>
           </AccordionSummary>
           <AccordionDetails>
-            <Grid container spacing={3}>
-            <Grid item xs={12} sm={6}>
-              <FormControl sx={{ minWidth: 400, m: 0 }} size="large">
-                <InputLabel variant="standard" htmlFor="uncontrolled-native" sx={{ pl: 2 }}>
-                  Bowels
-                </InputLabel>
-                <Select labelId="currentward" id="currentward" label="Current Ward">
-                  <MenuItem value={0}>Incontinent</MenuItem>
-                  <MenuItem value={1}>Occasional Accident</MenuItem>
-                  <MenuItem value={2}>Continent</MenuItem>
-                </Select>
-              </FormControl>
+            <Select
+              isMulti
+              onChange={(o) => setOptionsAmount(o)}
+              isOptionDisabled={() => optionsAmount.length >= 3}
+              options={options}
+              labelId="antecedents" id="antecedents" label="Antecedents"
+              sx={{ width: '200px' }}
+            />
+            <Button fullWidth sx={{ mb: 4, mt: 3 }} onClick={findAssociations}>
+              Find Associations
+            </Button>
+              <Grid container spacing={2}>
+              {foundAssociations.length > 0 ? (
+                <TableContainer component={Paper}>
+                  <Table>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>No.</TableCell>
+                        <TableCell>Antecedents</TableCell>
+                        <TableCell>Consequents</TableCell>
+                        <TableCell>Support</TableCell>
+                        <TableCell>Confidence</TableCell>
+                        <TableCell>Lift</TableCell>
+                        <TableCell>Leverage</TableCell>
+                        <TableCell>Conviction</TableCell>
+                        <TableCell>Zhang's Metric</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {sortedAssociations.map((association, index) => (
+                        <TableRow key={index}>
+                          <TableCell>{index + 1}</TableCell>
+                          <TableCell>{association.Antecedents}</TableCell>
+                          <TableCell>{association.Consequents}</TableCell>
+                          <TableCell>{association.Support.toFixed(4)}</TableCell>
+                          <TableCell sx={{borderRight: '1px solid #CCCCCC'}}>{association.Confidence.toFixed(4)}</TableCell>
+                          <TableCell sx={{color: '#888888'}}>{association.Lift.toFixed(4)}</TableCell>
+                          <TableCell sx={{color: '#888888'}}>{association.Leverage.toFixed(4)}</TableCell>
+                          <TableCell sx={{color: '#888888'}}>{association.Conviction.toFixed(4)}</TableCell>
+                          <TableCell sx={{color: '#888888'}}>{association.ZhangsMetric.toFixed(4)}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              ) : (
+                isButtonClicked === true ? (
+                  <Typography color="#888888" sx={{ mt: 2, ml: 2 }}>
+                    No associations found with the given options.
+                  </Typography>
+                ) : null // So the above is not visible when the user has not yet submitted anything
+              )}
             </Grid>
-            <Grid item xs={12} sm={6}>
-              <FormControl sx={{ minWidth: 400, m: 0 }} size="large">
-                <InputLabel variant="standard" htmlFor="uncontrolled-native" sx={{ pl: 2 }}>
-                  Transfers
-                </InputLabel>
-                <Select labelId="currentward" id="currentward" label="Current Ward">
-                  <MenuItem value={0}>Unable</MenuItem>
-                  <MenuItem value={1}>Major Help</MenuItem>
-                  <MenuItem value={2}>Minor Help</MenuItem>
-                  <MenuItem value={2}>Independent</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <FormControl sx={{ minWidth: 400, m: 0 }} size="large">
-                <InputLabel variant="standard" htmlFor="uncontrolled-native" sx={{ pl: 2 }}>
-                  Bladder
-                </InputLabel>
-                <Select labelId="bladder" id="bladder" label="Bladder">
-                  <MenuItem value={0}>Incontinent</MenuItem>
-                  <MenuItem value={1}>Occasional Accident</MenuItem>
-                  <MenuItem value={2}>Continent</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <FormControl sx={{ minWidth: 400, m: 0 }} size="large">
-                <InputLabel variant="standard" htmlFor="uncontrolled-native" sx={{ pl: 2 }}>
-                  Mobility
-                </InputLabel>
-                <Select labelId="mobility" id="mobility" label="Mobility">
-                  <MenuItem value={0}>Immobile</MenuItem>
-                  <MenuItem value={1}>Wheelchair Dependent</MenuItem>
-                  <MenuItem value={2}>Walks with help of one person</MenuItem>
-                  <MenuItem value={3}>Independent</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <FormControl sx={{ minWidth: 400, m: 0 }} size="large">
-                <InputLabel variant="standard" htmlFor="uncontrolled-native" sx={{ pl: 2 }}>
-                  Grooming
-                </InputLabel>
-                <Select labelId="grooming" id="grooming" label="Grooming">
-                  <MenuItem value={0}>Needs help with personal care</MenuItem>
-                  <MenuItem value={1}>Needs help but can groom self</MenuItem>
-                  <MenuItem value={2}>Independent</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <FormControl sx={{ minWidth: 400, m: 0 }} size="large">
-                <InputLabel variant="standard" htmlFor="uncontrolled-native" sx={{ pl: 2 }}>
-                  Dressing
-                </InputLabel>
-                <Select labelId="dressing" id="dressing" label="Dressing">
-                  <MenuItem value={0}>Dependent</MenuItem>
-                  <MenuItem value={1}>Needs help but can do half unaided</MenuItem>
-                  <MenuItem value={2}>Independent</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <FormControl sx={{ minWidth: 400, m: 0 }} size="large">
-                <InputLabel variant="standard" htmlFor="uncontrolled-native" sx={{ pl: 2 }}>
-                  Toilet Use
-                </InputLabel>
-                <Select labelId="toilet" id="toilet" label="Toilet Use">
-                  <MenuItem value={0}>Dependent</MenuItem>
-                  <MenuItem value={1}>Needs some help</MenuItem>
-                  <MenuItem value={2}>Independent</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <FormControl sx={{ minWidth: 400, m: 0 }} size="large">
-                <InputLabel variant="standard" htmlFor="uncontrolled-native" sx={{ pl: 2 }}>
-                  Stairs
-                </InputLabel>
-                <Select labelId="stairs" id="stairs" label="Stairs">
-                  <MenuItem value={0}>Unable</MenuItem>
-                  <MenuItem value={1}>Needs some help</MenuItem>
-                  <MenuItem value={2}>Independent</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <FormControl sx={{ minWidth: 400, m: 0 }} size="large">
-                <InputLabel variant="standard" htmlFor="uncontrolled-native" sx={{ pl: 2 }}>
-                  Feeding
-                </InputLabel>
-                <Select labelId="feeding" id="feeding" label="Feeding">
-                  <MenuItem value={0}>Dependent</MenuItem>
-                  <MenuItem value={1}>Needs help but can feed self</MenuItem>
-                  <MenuItem value={2}>Independent</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <FormControl sx={{ minWidth: 400, m: 0 }} size="large">
-                <InputLabel variant="standard" htmlFor="uncontrolled-native" sx={{ pl: 2 }}>
-                  Bathing
-                </InputLabel>
-                <Select labelId="bathing" id="bathing" label="Bathing">
-                  <MenuItem value={0}>Dependent</MenuItem>
-                  <MenuItem value={1}>Needs help but can bath self</MenuItem>
-                  <MenuItem value={2}>Independent</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            </Grid>  
           </AccordionDetails>
-          <Button onClick={handleFindRules} variant="contained" fullWidth>
-              Submit Admission Score
-          </Button>
         </Accordion>
       </Container>
     </>

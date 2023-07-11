@@ -38,10 +38,15 @@ function NavItem({ item }) {
       to={path}
       sx={{
         '&.active': {
-          color: 'text.primary',
-          bgcolor: 'action.selected',
+          borderLeft: '4px solid #ffffff',
+          color: '#ffffff',
+          bgcolor: '#000080',
           fontWeight: 'fontWeightBold',
+          paddingLeft: '12px',
+          position: 'relative',
         },
+        paddingLeft: '17px',
+        marginLeft: '-20px',
       }}
     >
       <StyledNavItemIcon>{icon && icon}</StyledNavItemIcon>

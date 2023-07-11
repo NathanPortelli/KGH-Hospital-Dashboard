@@ -1,4 +1,4 @@
-import { Dashboard, RecentActors, Equalizer, PersonAddAlt, List } from '@mui/icons-material';
+import { Dashboard, RecentActors, Equalizer, PersonAddAlt } from '@mui/icons-material';
 
 const navConfig = [
   {

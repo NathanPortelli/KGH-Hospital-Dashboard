@@ -1,21 +1,21 @@
 import { Helmet } from 'react-helmet-async';
 import { filter } from 'lodash';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 // @mui
-import { MenuItem, Card, Table, Stack, Paper, Button, TableRow, Divider, TableBody, TableCell, Container, Typography, IconButton, TableContainer, TablePagination, TextField, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { MenuItem, Card, Table, Stack, Button, TableRow, TableBody, TableCell, Container, Typography, IconButton, TableContainer, TablePagination, TextField, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import { toast } from 'react-toastify';
-
 // components
-import { updateDoc, doc, getDoc, collection, addDoc, getDocs, query, where, limit, startAfter } from 'firebase/firestore';
-import { read, utils } from 'xlsx';
-
+import { updateDoc, doc, getDoc, collection, getDocs, query, limit, startAfter } from 'firebase/firestore';
 import Iconify from '../components/iconify';
 import Scrollbar from '../components/scrollbar';
 // sections
 import { UserListHead } from '../sections/@dashboard/user';
 // firebase
 import { auth, db } from '../config/firebase';
+// components
+import { handleDroppedFile } from '../sections/@dashboard/patient/import';
+
 
 // ----------------------------------------------------------------------
 
@@ -73,31 +73,36 @@ function applySortFilter(array, comparator, query) {
 
 export default function UserPage() {
   const [searchQuery, setSearchQuery] = useState('');
-
   const [patientList, setPatientList] = useState([]);
   const patientCollectionRef = collection(db, 'patients');
-
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  
+  // const [open, setOpen] = useState(null);
+  const [page, setPage] = useState(0);
+  const [order, setOrder] = useState('asc');
+  const [selected, setSelected] = useState([]);
+  const [orderBy, setOrderBy] = useState('name');
+  const [filterName] = useState('');
+  const [rowsPerPage, setRowsPerPage] = useState(5);
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
-      if (user) {
-        // User is logged in
-        setIsAuthenticated(true);
+      if (user) {  
+        setIsAuthenticated(true); // User is logged in
       } else {
-        // User is logged out
-        setIsAuthenticated(false);
+        setIsAuthenticated(false); // User is logged out
       }
     });
     // Unsubscribe from the authentication listener when the component unmounts
     return () => unsubscribe();
   }, []);
 
+  const [startAfterDoc, setStartAfterDoc] = useState(null);
   const [lastDoc, setLastDoc] = useState(null);
 
   const [patientCount, setPatientCount] = useState(0);
   const patientsCounterRef = doc(db, 'patientsCounter', 'counter');
-
+  
   useEffect(() => {
     getDoc(patientsCounterRef).then((docSnapshot) => {
       if (docSnapshot.exists()) { setPatientCount(docSnapshot.data().count); }
@@ -107,7 +112,6 @@ export default function UserPage() {
   const getPatientList = async (startAfterDoc) => {
     try {
       let data;
-      // set to 10 as test due to raed requests consumption while testing
       if (startAfterDoc) {
         data = await getDocs(query(patientCollectionRef, startAfter(startAfterDoc), limit(10)));
       } else {
@@ -144,22 +148,13 @@ export default function UserPage() {
       // return () => unsubscribe();
   
     } catch (e) {
-      console.error(e);
+      console.error("Error getting patient list: ", e);
       toast.error("Error getting patient list. Please try again later.");
     }
-    
     // return undefined;
   };
   
-  useEffect(() => { getPatientList(); }, []);
-
-  // const [open, setOpen] = useState(null);
-  const [page, setPage] = useState(0);
-  const [order, setOrder] = useState('asc');
-  const [selected, setSelected] = useState([]);
-  const [orderBy, setOrderBy] = useState('name');
-  const [filterName] = useState('');
-  const [rowsPerPage, setRowsPerPage] = useState(5);
+  useEffect(() => { getPatientList(startAfterDoc); }, [startAfterDoc]);
 
   const handleRequestSort = (event, property) => {
     const isAsc = orderBy === property && order === 'asc';
@@ -176,15 +171,39 @@ export default function UserPage() {
     setSelected([]);
   };
 
-  const handleChangePage = (event, newPage) => {
-    setPage(newPage);
-    if (newPage > page) {
-      getPatientList(lastDoc);
-    } else {
-      // handle going back in pages -todo
-    }
-  };
+  const navigate = useNavigate();
+  const handleEditClick = (idNum) => { navigate(`/dashboard/patient/${idNum}`); };  
 
+  const emptyRows = page > 0 ? Math.max(0, (1 + page) * rowsPerPage - patientList.length) : 0;
+  const filteredPatients = applySortFilter(
+    patientList,
+    getComparator(order, orderBy),
+    filterName || searchQuery
+  );
+  // const pageCount = Math.ceil(filteredPatients.length / rowsPerPage);
+
+  const handleChangePage = async (event, newPage) => {
+    const pageCount = Math.ceil(filteredPatients.length / rowsPerPage);
+    if (newPage >= 0 && newPage < pageCount) {
+      setPage(newPage);
+      if (newPage > page) {
+        await getPatientList(lastDoc);
+        setPage(0);  // reset the page state
+      } else {
+        const patientsPerPage = rowsPerPage;
+        // const currentPageStartIndex = newPage * patientsPerPage;
+        const previousPageStartIndex = (newPage - 1) * patientsPerPage;
+        const previousPageStartAfterDoc = filteredPatients[previousPageStartIndex - 1].id;
+  
+        getPatientList(previousPageStartAfterDoc);
+      }
+    }
+  };  
+
+  useEffect(() => {
+    getPatientList(null); 
+  }, []);
+  
   const handleChangeRowsPerPage = (event) => {
     setPage(0);
     setRowsPerPage(parseInt(event.target.value, 10));
@@ -196,29 +215,13 @@ export default function UserPage() {
   //   setSearchQuery(searchText);
   // };  
 
-  const navigate = useNavigate();
-  const handleEditClick = (idNum) => { navigate(`/dashboard/patient/${idNum}`); };  
-
-  const emptyRows = page > 0 ? Math.max(0, (1 + page) * rowsPerPage - patientList.length) : 0;
-  const filteredPatients = applySortFilter(
-    patientList,
-    getComparator(order, orderBy),
-    filterName || searchQuery
-  );
-
   const formatDateExcel = (serialDate) => {
-    console.log("serialDate", serialDate)
     const millisecondsPerDay = 24 * 60 * 60 * 1000;
     const excelEpoch = new Date('1900-01-01');
     const millisecondsOffset = (serialDate - 1) * millisecondsPerDay;
     const date = new Date(excelEpoch.getTime() + millisecondsOffset);
-    console.log("date", date)
-    // Check if the date is valid, and return an empty string or any other suitable value for invalid dates
-    if (Number.isNaN(date.getTime())) { return ''; }
-  
-    // Format the valid date as 'YYYY-MM-DD'
-    const formattedDate = date.toISOString().split('T')[0];
-    console.log("formattedDate", formattedDate)
+    if (Number.isNaN(date.getTime())) { return ''; } // Check if the date is valid, and return an empty string or any other suitable value for invalid dates
+    const formattedDate = date.toISOString().split('T')[0]; // Format the valid date as 'YYYY-MM-DD'
     return formattedDate;
   };
 
@@ -232,21 +235,17 @@ export default function UserPage() {
         event.dataTransfer.dropEffect = 'copy';
       }
     };
-    
     const handleDragOver = (event) => {
       event.preventDefault();
       if (!event.target.classList.contains('file-upload-input')) { event.dataTransfer.dropEffect = 'copy'; }
     };
-
     const handleDragLeave = (event) => {
-      // Check if the related target is a child of the drop area
-      if (!event.currentTarget.contains(event.relatedTarget)) { setIsFileDragging(false); }
+      if (!event.currentTarget.contains(event.relatedTarget)) { setIsFileDragging(false); } // Check if the related target is a child of the drop area
     };
 
     const handleDrop = (event) => {
       event.preventDefault();
       setIsFileDragging(false);
-    
       const files = event.dataTransfer.files;
       if (files.length > 0) {
         const file = files[0];
@@ -271,95 +270,24 @@ export default function UserPage() {
 
   const handleFileUpload = (event) => {
     const file = event.target.files[0];
-
-    // Handle the selected file
-    console.log("2")
     handleDroppedFile(file);
   };
 
-  const handleDroppedFile = async (file) => {
-    // Check if the file format is valid (in this case, Excel file with .xlsx extension)
-    if (!file || !file.name.endsWith('.xlsx')) {
-      toast.error('Invalid file format. Please upload an Excel file (.xlsx).');
-      return;
-    }
-
-    // Read the Excel file
-    const workbook = await new Promise((resolve, reject) => {
-      const fileReader = new FileReader();
-      fileReader.onload = (e) => {
-        const data = new Uint8Array(e.target.result);
-        const workbook = read(data, { type: 'array' });
-        resolve(workbook);
-      };
-      fileReader.onerror = (error) => { reject(error); };
-      fileReader.readAsArrayBuffer(file);
-    });
-
-    // Get the first sheet from the workbook
-    const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-
-    // Convert the sheet data into JSON format
-    const jsonData = utils.sheet_to_json(worksheet, { header: 1 });
-
-    // Check if the Excel file has the required headers
-    const requiredHeaders = ['Age', 'DOB', 'FirstName', 'IDNum', 'LastName', 'Locality', 'Sex', 'AdmissionThru', 'AdmissionWard', 'AdmitDate', 'Consultant', 'MainDiagnosis', 'OtherDiagnosis'];
-    const headers = jsonData[0];
-    const hasRequiredHeaders = requiredHeaders.every((requiredHeader) =>
-      headers.includes(requiredHeader)
-    );
-
-    if (!hasRequiredHeaders) {
-      toast.error('Invalid file format. The Excel file is missing required headers.');
-      return;
-    }
-
-    // Get the data without the headers
-    const data = jsonData.slice(1);
-
-    // Create an array of objects with keys from headers and values from data
-    const patients = data.map((row) => {
-      const patient = {};
-      row.forEach((value, index) => {
-        patient[headers[index]] = value;
-      });
-
-      // Format the "AdmitDate" and "DOB" values
-      patient.AdmitDate = formatDateExcel(patient.AdmitDate);
-      patient.DOB = formatDateExcel(patient.DOB);
-
-      return patient;
-    });
-
-    // Import the patients data to Firestore
-    const patientCollectionRef = collection(db, 'patients');
-
-    patients.forEach(async (patient) => {
-      try {
-        const { Age, DOB, FirstName, IDNum, LastName, Locality, Sex, AdmissionThru, AdmissionWard, AdmitDate, Consultant, MainDiagnosis, OtherDiagnosis } = patient;
-        const patientData = { 
-          Age, DOB, FirstName, IDNum, LastName, Locality, Sex,
-          admissiondetails: { AdmissionThru, AdmissionWard, AdmitDate, Consultant, MainDiagnosis, OtherDiagnosis, },
-        };
-        await addDoc(patientCollectionRef, patientData);
-      } catch (e) {
-        toast.error('Error adding patient');
-        console.log("error adding patient", e);
-      }
-    });
-    toast.success('Patients successfully imported. Refresh the page to view.');
-  };    
   const [openDialog, setOpenDialog] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [openStatusDialog, setOpenStatusDialog] = useState(false);
-
+  const handleOpenDialog = () => {
+    setOpenDialog(true);
+  };
+  const handleCloseDialog = () => {
+    setOpenDialog(false);
+  };
   const handleOpenStatusDialog = (idNum) => {
     const selectedPatient = patientList.find((patient) => patient.id === idNum);
     setSelectedPatient(selectedPatient);
     setSelectedStatus(selectedPatient.patientStatus || 'Not Set');
     setOpenStatusDialog(true);
   };
-  
   const handleCloseStatusDialog = async () => {
     try {
       const patientRef = doc(db, 'patients', selectedPatient.id);
@@ -374,34 +302,18 @@ export default function UserPage() {
   
   const getPatientStatusColor = (status) => {
     switch (status) {
-      case 'Not Set':
-        return 'grey';
-      case 'Reserved':
-        return 'black';
-      case 'Checking In':
-        return 'green';
-      case 'Tests':
-        return '#ba000d';
-      case 'Observation':
-        return 'teal';
-      case 'Checking Out':
-        return 'brown';
-      case 'Discharged':
-        return 'red';
-      default:
-        return 'grey';
+      case 'Not Set': return 'grey';
+      case 'Reserved': return 'black';
+      case 'Checking In': return 'green';
+      case 'Tests': return '#ba000d';
+      case 'Observation': return 'teal';
+      case 'Checking Out': return 'brown';
+      case 'Discharged': return 'red';
+      default: return 'grey';
     }
-  };  
+  };
 
   const [selectedStatus, setSelectedStatus] = useState('Not Set');
-
-  const handleOpenDialog = () => {
-    setOpenDialog(true);
-  };
-
-  const handleCloseDialog = () => {
-    setOpenDialog(false);
-  };
 
   if (!isAuthenticated) {
     navigate('/login');
@@ -441,33 +353,54 @@ export default function UserPage() {
           <DialogTitle>Add New Patients</DialogTitle>
           <DialogContent>
             <Container>
-              <Button sx={{height: '50px', fontSize: '18px', mt: 3}} fullWidth variant='contained' startIcon={<Iconify icon="eva:plus-fill" />} href="/dashboard/newpatient">
-                Add a Patient
-              </Button>
-              <Typography align="center" variant="h5" sx={{mt: 5}} gutterBottom>
-                ...or upload in bulk
-              </Typography>
-              
-              <input type="file" id="file-upload-input" className="file-upload-input" accept=".xlsx" onChange={handleFileUpload} style={{display: 'none',}}/>
-              <label
-                htmlFor="file-upload-input"
-                onDragOver={(e) => e.preventDefault()}
-                onDragEnter={(e) => {
-                  e.preventDefault();
-                  setIsFileDragging(true);
-                }}
-                onDragLeave={(e) => {
-                  e.preventDefault();
-                  setIsFileDragging(false);
-                }}
-                style={{ padding: '2rem', backgroundColor: isFileDragging ? 'cyan' : 'lightblue', border: '2px dashed gray', borderRadius: '5px', cursor: 'pointer', height: '350px',
+              <Button fullWidth variant='contained' startIcon={<Iconify icon="eva:plus-fill" />} href="/dashboard/newpatient"> Add a Patient </Button>
+              <Typography align="center" variant="h5" sx={{mt: 5}} gutterBottom> ...or upload in bulk </Typography>
+              <input type="file" id="file-upload-input" className="file-upload-input" accept=".xlsx" onChange={handleFileUpload} style={{display: 'none'}}/>
+              <label htmlFor="file-upload-input" 
+                onDragOver={(e) => e.preventDefault()} 
+                onDragEnter={(e) => { e.preventDefault(); setIsFileDragging(true); }}
+                onDragLeave={(e) => { e.preventDefault(); setIsFileDragging(false); }}
+                style={{ padding: '2rem', backgroundColor: isFileDragging ? 'cyan' : 'lightblue', border: '2px dashed gray', borderRadius: '5px', cursor: 'pointer', height: '750px',
                   width: '100%', margin: '1rem 0', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', textAlign: 'center', outline: 'none',}}>
                 <Iconify icon="eva:upload-fill" style={{ width: '65px', height: '65px', marginRight: '0.5rem' }} />
                 <Typography sx={{mt: 3}}variant="h4" gutterBottom>Drag and drop your XLSX file here</Typography>
                 <Typography sx={{mt: 1, mb: 2}} gutterBottom>
-                  Ensure that the file is in <b>.XLSX</b> format and that it contains the following column headers:<br />'Age', 'DOB', 'FirstName', 'IDNum', 'LastName', 'Locality', 'Sex', 'AdmissionThru', 'AdmissionWard', 'AdmitDate', 'Consultant', 'MainDiagnosis', 'OtherDiagnosis'.
+                  Ensure that the file is in <b>.XLSX</b> format and that it contains some of the following patient details:<br /><hr />
+                <Typography variant="h6" sx={{mb: 2}}>Personal Details</Typography>
+                <ul style={{columns: '3', listStyle:'none'}}>
+                  <li>ID Number</li>
+                  <li>First Name</li>
+                  <li>Last Name</li>
+                  <li>Sex (M/F)</li>
+                  <li>Age</li>
+                  <li>Date of Birth</li>
+                  <li>Locality</li>
+                </ul><br /><hr />
+                <Typography variant="h6" sx={{mb: 2}}>Admission Details</Typography>
+                <ul style={{columns: '3', listStyle:'none'}}>
+                  <li>Admission Through</li>
+                  <li>Admission Ward</li>
+                  <li>Date of Admission</li>
+                  <li>Consultant</li>
+                  <li>Main Diagnosis</li>
+                  <li>Other Diagnosis</li>
+                </ul><br /><hr />
+                <Typography variant="h6" sx={{mb: 2}}>Barthel Admission Scores</Typography>
+                  <ul style={{columns: '3', listStyle:'none'}}>
+                    <li>Bowels</li>
+                    <li>Transferring</li>
+                    <li>Bladder</li>
+                    <li>Mobility</li>
+                    <li>Grooming</li>
+                    <li>Dressing</li>
+                    <li>Toilet Use</li>
+                    <li>Stairs</li>
+                    <li>Feeding</li>
+                    <li>Bathing</li>
+                  </ul><br /><hr />
                 </Typography>
                 <Button variant="contained" startIcon={<Iconify icon="eva:upload-fill" />}>{isFileDragging ? 'Drop the file here' : 'browse files'}</Button>
+                <br />
               </label>
             </Container>
           </DialogContent>
@@ -477,7 +410,6 @@ export default function UserPage() {
         </Dialog>
 
         <TextField id="search"label="Search patients..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} fullWidth margin="normal" variant="outlined"/>
-
         <Card>
           {/* <UserListToolbar numSelected={selected.length} filterName={filterName} onFilterName={handleFilterByName} /> */}
           <Scrollbar>
@@ -495,7 +427,6 @@ export default function UserPage() {
                   {filteredPatients.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((row) => {
                     const { id, IDNum, Sex, FirstName, LastName, AdmissionWard, AdmitDate, Consultant } = row;
                     const selectedUser = selected.indexOf(FirstName) !== -1;
-
                     return (
                       <TableRow hover key={id} tabIndex={-1} role="checkbox" selected={selectedUser}>
                         <TableCell component="th" scope="row" padding-left="7px">
@@ -509,41 +440,30 @@ export default function UserPage() {
                         <TableCell align="left">{Consultant}</TableCell> 
                         <TableCell align="left">{AdmissionWard}</TableCell> 
                         <TableCell>
-                          <Button
-                            size="small"
-                            onClick={() => handleOpenStatusDialog(row.id)}
-                            style={{ color: 'white', backgroundColor: getPatientStatusColor(row.patientStatus) }}
-                          >
-                            {row.patientStatus}
-                          </Button>
+                          <Button size="small" onClick={() => handleOpenStatusDialog(row.id)} style={{ color: 'white', backgroundColor: getPatientStatusColor(row.patientStatus) }}>{row.patientStatus}</Button>
                         </TableCell>
                         <TableCell align="right">
-                          <IconButton size="large" color="inherit" onClick={() => handleEditClick(IDNum)}>
-                            <Iconify icon={'tabler:edit'} />
-                          </IconButton>
+                          <IconButton size="large" color="inherit" onClick={() => handleEditClick(IDNum)}><Iconify icon={'tabler:edit'} /></IconButton>
                         </TableCell>
                       </TableRow>
                     );
                   })}
-                  {emptyRows > 0 && (
-                    <TableRow style={{ height: 53 * emptyRows }}>
-                      <TableCell colSpan={6} />
-                    </TableRow>
-                  )}
+                  {emptyRows > 0 && (<TableRow style={{ height: 53 * emptyRows }}><TableCell colSpan={6} /></TableRow>)}
                 </TableBody>
               </Table>
             </TableContainer>
           </Scrollbar>
 
           <TablePagination
-            rowsPerPageOptions={[5, 10, 25]}
+            rowsPerPageOptions={[5]}
             component="div"
-            count={patientCount}
-            rowsPerPage={rowsPerPage}
+            count={filteredPatients.length}
             page={page}
             onPageChange={handleChangePage}
+            rowsPerPage={rowsPerPage}
             onRowsPerPageChange={handleChangeRowsPerPage}
           />
+
         </Card>
       </Container>
   </>

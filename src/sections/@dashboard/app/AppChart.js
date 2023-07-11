@@ -78,7 +78,7 @@ export default function AppChart({ title, subheader, chartLabels, chartData, ...
     },
     grid: {
       padding: {
-        bottom: 20, // Increase the bottom margin
+        bottom: 20, // to increase the bottom margin
       },
     },
   });

@@ -19,10 +19,6 @@ export default function LoginForm() {
   const [email, setEmail] = useState("");
   const [pass, setPass] = useState("");
 
-  const handleClick = () => {
-    navigate('/dashboard', { replace: true });
-  };
-
   const signIn = async () => {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, pass);
@@ -37,7 +33,7 @@ export default function LoginForm() {
           errorMessage = 'This account does not exist.';
           break;
         case 'auth/wrong-password':
-          errorMessage = 'Incorrect password. Please try again.';
+          errorMessage = 'Incorrect password. Please input the correct password and try again.';
           break;
         default:
           errorMessage = 'An error occurred. Please try again later.';
@@ -67,13 +63,6 @@ export default function LoginForm() {
           }}
         />
       </Stack>
-
-      {/* <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ my: 2 }}>
-        <Checkbox name="remember" label="Remember me" />
-        <Link variant="subtitle2" underline="hover">
-          Forgot password?
-        </Link>
-      </Stack> */}
 
       <LoadingButton fullWidth size="large" type="submit" variant="contained" onClick={signIn}>
         Login

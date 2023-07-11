@@ -17,11 +17,13 @@ import { getDocs, doc, updateDoc, addDoc, collection } from 'firebase/firestore'
 import { db, auth } from '../config/firebase';
 import Iconify from '../components/iconify';
 
+import { isNameValid, isAgeValid, isIDNumValid, isAdminDateValid, isDOBValid, } from '../validations/validation'
+import CustomBox from '../layouts/CustomBox';
+
 // ----------------------------------------------------------------------
 
 export default function NewPatientPage() {
   const navigate = useNavigate();
-
   const [wards, setWards] = useState([]);
 
   useEffect(() => {
@@ -40,11 +42,9 @@ export default function NewPatientPage() {
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
       if (user) {
-        // User is logged in
-        setIsAuthenticated(true);
+        setIsAuthenticated(true); // User is logged in
       } else {
-        // User is logged out
-        setIsAuthenticated(false);
+        setIsAuthenticated(false); // User is logged out
       }
     });
     // Unsubscribe from the authentication listener when the component unmounts
@@ -66,18 +66,15 @@ export default function NewPatientPage() {
   const [newAdmOtherDiag, setNewAdmOtherDiag] = useState("");
   const [newAdmWard, setNewAdmWard] = useState("");
 
+  const localities = [ "Attard", "Balzan", "Birkirkara", "Birżebbuġa", "Cospicua", "Dingli", "Fgura", "Floriana", "Fontana", "Gudja", "Għajnsielem", "Għarb", "Għargħur", "Għasri", "Għaxaq", "Gżira", "Iklin", "Il-Gżira", "Imdina", "Imqabba", "Imsida", "Imtarfa", "Imġarr", "Kalkara", "Kerċem", "Kirkop", "Lija", "Luqa", "Marsa", "Marsaskala", "Marsaxlokk", "Mellieħa", "Mosta", "Munxar", "Nadur", "Naxxar", "Paola", "Pembroke", "Pieta", "Qala", "Qormi", "Qrendi", "Rabat, Malta", "Safi", "Saint Pauls Bay", "San Lawrenz", "San Ġiljan", "San Ġwann", "Sannat", "Santa Luċija", "Santa Venera", "Senglea", "Siġġiewi", "Sliema", "Swieqi", "Tarxien", "Ta Xbiex", "Valletta", "Victoria", "Vittoriosa", "Xagħra", "Xewkija", "Xgħajra", "Ħamrun", "Żabbar", "Żebbuġ", "Żebbuġ", "Żejtun", "Żurrieq", ];
+  const consultants = [ "Dr. S. Abela", "Dr. E. Bellia", "Dr. J. Cordina", "Dr. S. Dalli", "Dr. J. Dimech", "Dr. B. Farrugia", "Dr. P. Ferry", "Dr. S. La Maestra", "Dr. M. A. Vassallo", ];
+
   const patientCollectionRef = collection(db, "patients");
 
-  const setFormattedDOB = (dateString) => {
+  const setFormattedDate = (dateString) => {
     const dateDOB = new Date(dateString);
-    const formattedDateDOB = format(dateDOB, 'yyyy-MM-dd');
-    setNewDOB(formattedDateDOB);
-  };
-  
-  const setFormattedAdmDate = (dateString) => {
-    const date = new Date(dateString);
-    const formattedDate = format(date, 'yyyy-MM-dd');
-    setNewAdmDate(formattedDate);
+    const formattedDate = format(dateDOB, 'yyyy-MM-dd');
+    setNewDOB(formattedDate);
   };
 
   // VALIDATIONS
@@ -89,59 +86,31 @@ export default function NewPatientPage() {
     dob: true,
   });
 
-  const isFirstNameValid = (firstName) => {
-    const regex = /^[A-Za-z.-]+$/;
-    return regex.test(firstName);
-  };
   useEffect(() => {
-    const isValid = isFirstNameValid(newFirstName);
+    const isValid = isNameValid(newFirstName);
     setFieldValidity((prevState) => ({ ...prevState, firstName: isValid }));
   }, [newFirstName]);
 
-  const isLastNameValid = (lastName) => {
-    const regex = /^[A-Za-z.-]+$/;
-    return regex.test(lastName);
-  };
   useEffect(() => {
-    const isValid = isLastNameValid(newLastName);
+    const isValid = isNameValid(newLastName);
     setFieldValidity((prevState) => ({ ...prevState, lastName: isValid }));
   }, [newLastName]);
   
-  const isIDNumValid = (idNum) => {
-    const regex = /^\d+[A-Za-z]$/;
-    return regex.test(idNum);
-  };
   useEffect(() => {
     const isValid = isIDNumValid(newIDNum);
     setFieldValidity((prevState) => ({ ...prevState, idNum: isValid }));
   }, [newIDNum]);  
 
-  const isAgeValid = (age) => {
-    const parsedAge = parseInt(age, 10);
-    return !Number.isNaN(parsedAge) && parsedAge >= 0 && parsedAge <= 120;
-  };
   useEffect(() => {
     const isValid = isAgeValid(newAge);
     setFieldValidity((prevState) => ({ ...prevState, age: isValid }));
   }, [newAge]);  
   
-  const isDOBValid = (dob) => {
-    const minDate = new Date('1900-01-01');
-    const maxDate = new Date('2023-01-01');
-    const inputDate = new Date(dob);
-    return inputDate >= minDate && inputDate <= maxDate;
-  };
   useEffect(() => {
     const isValid = isDOBValid(newDOB);
     setFieldValidity((prevState) => ({ ...prevState, dob: isValid }));
   }, [newDOB]); 
   
-  const isAdminDateValid = (admDate) => {
-    const minDate = new Date('2017-01-01');
-    const maxDate = new Date('2025-01-01');
-    const inputDate = new Date(admDate);
-    return inputDate >= minDate && inputDate <= maxDate;
-  };
   useEffect(() => {
     const isValid = isAdminDateValid(newAdmDate);
     setFieldValidity((prevState) => ({ ...prevState, admDate: isValid }));
@@ -206,7 +175,7 @@ export default function NewPatientPage() {
           </Typography>
         </Stack>
 
-        <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: '10px', p: 3, backgroundColor: 'grey.200' }}>
+        <CustomBox>
           <Typography variant="h6" gutterBottom>
             Personal Details
           </Typography>
@@ -254,23 +223,23 @@ export default function NewPatientPage() {
               />
             </Grid> 
             <Grid item xs={12} sm={6}>
-            <TextField
-              id="age"
-              name="age"
-              label="Age"
-              fullWidth
-              autoComplete="age"
-              variant="standard"
-              type="number"
-              inputProps={{ max: 120, inputcomponent: Input }}
-              onChange={(e) => setNewAge(Number(e.target.value))}
-              error={!fieldValidity.age}
-              helperText={!fieldValidity.age && "Please input only numbers between 0 and 120."}
-            />
+              <TextField
+                id="age"
+                name="age"
+                label="Age"
+                fullWidth
+                autoComplete="age"
+                variant="standard"
+                type="number"
+                inputProps={{ max: 120, inputcomponent: Input }}
+                onChange={(e) => setNewAge(Number(e.target.value))}
+                error={!fieldValidity.age}
+                helperText={!fieldValidity.age && "Please input only numbers between 0 and 120."}
+              />
             </Grid>
             <Grid item xs={12} sm={6}>
               <LocalizationProvider dateAdapter={AdapterDayjs}>
-                <DatePicker id="dob" name="dob" slotProps={{ textField: { fullWidth: true } }} format="DD-MM-YYYY" label="Date of Birth" onChange={(date) => setFormattedDOB(date)} error={!fieldValidity.dob} helperText={!fieldValidity.dob && "Please input a valid date."}/>
+                <DatePicker id="dob" name="dob" slotProps={{ textField: { fullWidth: true } }} format="DD-MM-YYYY" label="Date of Birth" onChange={(date) => setFormattedDate(date)} error={!fieldValidity.dob} helperText={!fieldValidity.dob && "Please input a valid date."}/>
               </LocalizationProvider>
             </Grid>
             <Grid item xs={12} sm={6}>
@@ -289,168 +258,75 @@ export default function NewPatientPage() {
               <InputLabel variant="standard" htmlFor="uncontrolled-native" sx={{ pl: 2 }}>
                 Locality
               </InputLabel>
-                <Select
-                  labelId="locality"
-                  id="locality"
-                  label="Locality"
-                  onChange={(e) => setNewLocality(e.target.value)}
-                >
-                  <MenuItem value={"Attard"}>Attard</MenuItem>
-                  <MenuItem value={"Balzan"}>Balzan</MenuItem>
-                  <MenuItem value={"Birkirkara"}>Birkirkara</MenuItem>
-                  <MenuItem value={"Birżebbuġa"}>Birżebbuġa</MenuItem>
-                  <MenuItem value={"Cospicua"}>Cospicua</MenuItem>
-                  <MenuItem value={"Dingli"}>Dingli</MenuItem>
-                  <MenuItem value={"Fgura"}>Fgura</MenuItem>
-                  <MenuItem value={"Floriana"}>Floriana</MenuItem>
-                  <MenuItem value={"Fontana"}>Fontana</MenuItem>
-                  <MenuItem value={"Gudja"}>Gudja</MenuItem>
-                  <MenuItem value={"Għajnsielem"}>Għajnsielem</MenuItem>
-                  <MenuItem value={"Għarb"}>Għarb</MenuItem>
-                  <MenuItem value={"Għargħur"}>Għargħur</MenuItem>
-                  <MenuItem value={"Għasri"}>Għasri</MenuItem>
-                  <MenuItem value={"Għaxaq"}>Għaxaq</MenuItem>
-                  <MenuItem value={"Gżira"}>Gżira</MenuItem>
-                  <MenuItem value={"Iklin"}>Iklin</MenuItem>
-                  <MenuItem value={"Gżira"}>Il-Gżira</MenuItem>
-                  <MenuItem value={"Imdina"}>Imdina</MenuItem>
-                  <MenuItem value={"Imqabba"}>Imqabba</MenuItem>
-                  <MenuItem value={"Imsida"}>Imsida</MenuItem>
-                  <MenuItem value={"Imtarfa"}>Imtarfa</MenuItem>
-                  <MenuItem value={"Imġarr"}>Imġarr</MenuItem>
-                  <MenuItem value={"Kalkara"}>Kalkara</MenuItem>
-                  <MenuItem value={"Kerċem"}>Kerċem</MenuItem>
-                  <MenuItem value={"Kirkop"}>Kirkop</MenuItem>
-                  <MenuItem value={"Lija"}>Lija</MenuItem>
-                  <MenuItem value={"Luqa"}>Luqa</MenuItem>
-                  <MenuItem value={"Marsa"}>Marsa</MenuItem>
-                  <MenuItem value={"Marsaskala"}>Marsaskala</MenuItem>
-                  <MenuItem value={"Marsaxlokk"}>Marsaxlokk</MenuItem>
-                  <MenuItem value={"Mellieħa"}>Mellieħa</MenuItem>
-                  <MenuItem value={"Mosta"}>Mosta</MenuItem>
-                  <MenuItem value={"Munxar"}>Munxar</MenuItem>
-                  <MenuItem value={"Nadur"}>Nadur</MenuItem>
-                  <MenuItem value={"Naxxar"}>Naxxar</MenuItem>
-                  <MenuItem value={"Paola"}>Paola</MenuItem>
-                  <MenuItem value={"Pembroke"}>Pembroke</MenuItem>
-                  <MenuItem value={"Pieta"}>Pietà</MenuItem>
-                  <MenuItem value={"Qala"}>Qala</MenuItem>
-                  <MenuItem value={"Qormi"}>Qormi</MenuItem>
-                  <MenuItem value={"Qrendi"}>Qrendi</MenuItem>
-                  <MenuItem value={"Rabat"}>Rabat, Malta</MenuItem>
-                  <MenuItem value={"Safi"}>Safi</MenuItem>
-                  <MenuItem value={"Saint Pauls Bay"}>Saint Pauls Bay</MenuItem>
-                  <MenuItem value={"San Lawrenz"}>San Lawrenz</MenuItem>
-                  <MenuItem value={"San Ġiljan"}>San Ġiljan</MenuItem>
-                  <MenuItem value={"San Ġwann"}>San Ġwann</MenuItem>
-                  <MenuItem value={"Sannat"}>Sannat</MenuItem>
-                  <MenuItem value={"Santa Luċija"}>Santa Luċija</MenuItem>
-                  <MenuItem value={"Santa Venera"}>Santa Venera</MenuItem>
-                  <MenuItem value={"Senglea"}>Senglea</MenuItem>
-                  <MenuItem value={"Siġġiewi"}>Siġġiewi</MenuItem>
-                  <MenuItem value={"Sliema"}>Sliema</MenuItem>
-                  <MenuItem value={"Swieqi"}>Swieqi</MenuItem>
-                  <MenuItem value={"Tarxien"}>Tarxien</MenuItem>
-                  <MenuItem value={"Ta Xbiex"}>Ta Xbiex</MenuItem>
-                  <MenuItem value={"Valletta"}>Valletta</MenuItem>
-                  <MenuItem value={"Victoria"}>Victoria</MenuItem>
-                  <MenuItem value={"Vittoriosa"}>Vittoriosa</MenuItem>
-                  <MenuItem value={"Xagħra"}>Xagħra</MenuItem>
-                  <MenuItem value={"Xewkija"}>Xewkija</MenuItem>
-                  <MenuItem value={"Xgħajra"}>Xgħajra</MenuItem>
-                  <MenuItem value={"Ħamrun"}>Ħamrun</MenuItem>
-                  <MenuItem value={"Żabbar"}>Żabbar</MenuItem>
-                  <MenuItem value={"Żebbuġ"}>Żebbuġ</MenuItem>
-                  <MenuItem value={"Żebbuġ"}>Żebbuġ</MenuItem>
-                  <MenuItem value={"Żejtun"}>Żejtun</MenuItem>
-                  <MenuItem value={"Żurrieq"}>Żurrieq</MenuItem>
+                <Select labelId="locality" id="locality" label="Locality" onChange={(e) => setNewLocality(e.target.value)}>
+                  {localities.map((locality) => (
+                    <MenuItem key={locality} value={locality}>
+                      {locality}
+                    </MenuItem>
+                  ))}
                 </Select>
               </FormControl>
             </Grid>
           </Grid>
-        </Box>
+        </CustomBox>
 
-        <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: '10px', mt:5, p: 3, backgroundColor: 'grey.200' }}>
+        <CustomBox>
           <Typography variant="h6" gutterBottom>
             Admission Details
           </Typography>
           <Grid container spacing={3}>
             <Grid item xs={12}>
               <LocalizationProvider dateAdapter={AdapterDayjs}>
-                <DatePicker id="admissiondate" name="admissiondate" slotProps={{ textField: { fullWidth: true } }} format="DD-MM-YYYY" label="Admission Date" onChange={(date) => setFormattedAdmDate(date)} error={!fieldValidity.admDate} helperText={!fieldValidity.admDate && "Please input only numbers between 0 and 120."}/>
+                <DatePicker id="admissiondate" name="admissiondate" slotProps={{ textField: { fullWidth: true } }} format="DD-MM-YYYY" label="Admission Date" onChange={(date) => setFormattedDate(date)} error={!fieldValidity.admDate} helperText={!fieldValidity.admDate && "Please input a valid date."}/>
               </LocalizationProvider>
             </Grid>
             <Grid item xs={12} sm={6}>
               <FormControl sx={{ minWidth: 'calc(100%)', m: 0 }} size="large">
-                <InputLabel variant="standard" htmlFor="uncontrolled-native" sx={{ pl: 2 }}>
-                  Admission Through
-                </InputLabel>
+                <InputLabel variant="standard" htmlFor="uncontrolled-native" sx={{ pl: 2 }}> Admission Through </InputLabel>
                 <Select labelId="admissionthru" id="admissionthru" label="Admission Through" onChange={(e) => setNewAdmThru(e.target.value)}>
                   <MenuItem value={"Internal Transfer"}>Internal Transfer</MenuItem>
                   <MenuItem value={"MDH"}>Mater Dei Hospital</MenuItem>
                   <MenuItem value={"Own Home"}>Own Home</MenuItem>
                   <MenuItem value={"Care Home"}>Care Home</MenuItem>
-                  <MenuItem value={"Private Hospita"}>Private Hospital</MenuItem>
+                  <MenuItem value={"Private Hospital"}>Private Hospital</MenuItem>
                   <MenuItem value={"Other"}>Other Government Hospital</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
             <Grid item xs={12} sm={6}>
               <FormControl sx={{ minWidth: 'calc(100%)', m: 0 }} size="large">
-                <InputLabel variant="standard" htmlFor="uncontrolled-native" sx={{ pl: 2 }}>
-                  Consultant
-                </InputLabel>
+                <InputLabel variant="standard" htmlFor="uncontrolled-native" sx={{ pl: 2 }}> Consultant </InputLabel>
                 <Select labelId="consultant" id="consultant" label="Consultant" onChange={(e) => setNewAdmConsultant(e.target.value)}>
-                  <MenuItem value={"Dr. S. Abela"}>Dr. S. Abela</MenuItem>
-                  <MenuItem value={"Dr. E. Bellia"}>Dr. E. Bellia</MenuItem>
-                  <MenuItem value={"Dr. J. Cordina"}>Dr. J. Cordina</MenuItem>
-                  <MenuItem value={"Dr. S. Dalli"}>Dr. S. Dalli</MenuItem>
-                  <MenuItem value={"Dr. J. Dimech"}>Dr. J. Dimech</MenuItem>
-                  <MenuItem value={"Dr. B. Farrugia"}>Dr. B. Farrugia</MenuItem>
-                  <MenuItem value={"Dr. P. Ferry"}>Dr. P. Ferry</MenuItem>
-                  <MenuItem value={"Dr. S. La Maestra"}>Dr. S. La Maestra</MenuItem>
-                  <MenuItem value={"Dr. M. A. Vassallo"}>Dr. M. A. Vassallo</MenuItem>      
+                  {consultants.map((consultant) => (
+                    <MenuItem key={consultant} value={consultant}>
+                      {consultant}
+                    </MenuItem>
+                  ))}    
                 </Select>
               </FormControl>
             </Grid>
           </Grid>
-        </Box>
+        </CustomBox>
 
-        <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: '10px', mt:5, p: 3, backgroundColor: 'grey.200' }}>
+        <CustomBox>
           <Typography variant="h6" gutterBottom>
             Reason for Admission
           </Typography>
           <Grid container spacing={3}>
             <Grid item xs={12} sm={6} onChange={(e) => setNewAdmMainDiag(e.target.value)}>
-              <TextField
-                id="maindiagnosis"
-                name="maindiagnosis"
-                label="Main Diagnosis"
-                fullWidth
-                variant="standard"
-              />
+              <TextField id="maindiagnosis" name="maindiagnosis" label="Main Diagnosis" fullWidth variant="standard"/>
             </Grid>
             <Grid item xs={12} sm={6} onChange={(e) => setNewAdmOtherDiag(e.target.value)}>
-              <TextField
-                id="otherdiagnosis"
-                name="otherdiagnosis"
-                label="Other Diagnosis"
-                fullWidth
-                variant="standard"
-              />
+              <TextField id="otherdiagnosis" name="otherdiagnosis" label="Other Diagnosis" fullWidth variant="standard"/>
             </Grid>
           </Grid>
-        </Box>
+        </CustomBox>
 
-        <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: '10px', mt: 5, p: 3, backgroundColor: 'grey.200' }}>
+        <CustomBox>
           <Grid>
-            <Typography variant="h6" gutterBottom>
-              Pick Ward
-            </Typography>
+            <Typography variant="h6" gutterBottom> Pick Ward </Typography>
             <FormControl sx={{ minWidth: 'calc(100%)', m: 0 }} size="large">
-              <InputLabel variant="standard" htmlFor="uncontrolled-native" sx={{ pl: 2 }}>
-                Current Ward
-              </InputLabel>
+              <InputLabel variant="standard" htmlFor="uncontrolled-native" sx={{ pl: 2 }}> Current Ward </InputLabel>
               <Select labelId="currentward" id="currentward" label="Current Ward" onChange={(e) => setNewAdmWard(e.target.value)}>
                 {wards
                   .sort((a, b) => a.wardno - b.wardno)
@@ -467,7 +343,7 @@ export default function NewPatientPage() {
               </Select>
             </FormControl>
           </Grid>
-        </Box>
+        </CustomBox>
       </Container>
       <Box sx={{ display: 'flex', justifyContent: 'center', my: 3 }}>
         <Button variant="contained" startIcon={<Iconify icon="formkit:submit" />} sx={{ mx: 2, fontSize: '1.1rem', padding: '8px 16px' }} onClick={onSubmitPatientDetails}>

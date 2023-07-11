@@ -13,18 +13,9 @@ import account from '../../../_mock/account';
 // ----------------------------------------------------------------------
 
 const MENU_OPTIONS = [
-  {
-    label: 'Home',
-    icon: 'eva:home-fill',
-  },
-  {
-    label: 'Profile',
-    icon: 'eva:person-fill',
-  },
-  {
-    label: 'Settings',
-    icon: 'eva:settings-2-fill',
-  },
+  { label: 'Home', },
+  { label: 'Profile', },
+  { label: 'Settings', },
 ];
 
 // ----------------------------------------------------------------------
@@ -76,8 +67,9 @@ export default function AccountPopover() {
       .then(() => {
         navigate('/login', { replace: true });
       })
-      .catch((error) => {
+      .catch((e) => {
         toast.error('An error occurred while signing out. Please refresh and try again.');
+        console.log("An error occurred while signing out: ", e)
       });
   };
 
@@ -93,8 +85,6 @@ export default function AccountPopover() {
           ml: 3,
           position: 'relative',
           padding: '8px',
-          backgroundColor: '#D0F2FF',
-          borderRadius: '10%',
         }}
       >
         <Grid item>

@@ -78,13 +78,13 @@ export default function AppChart({ title, subheader, chartLabels, chartData, ...
     },
     grid: {
       padding: {
-        bottom: 20, // to increase the bottom margin
+        bottom: 20,
       },
     },
   });
 
   return (
-    <Card {...other}>
+    <Card {...other} sx={{transition: 'background-color 0.2s ease', '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.1)', },}}>
       <CardHeader title={title} subheader={subheader} />
 
       <Box sx={{ p: 3, pb: 1 }} dir="ltr">

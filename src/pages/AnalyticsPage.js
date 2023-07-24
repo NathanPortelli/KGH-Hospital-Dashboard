@@ -2,13 +2,14 @@ import { Helmet } from 'react-helmet-async';
 import { useState,useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Select from "react-select";
-
 // @mui
-import { Grid, Button, Container, Typography, Paper, TableContainer, Table, TableHead, TableRow, TableCell, TableBody, Accordion, AccordionSummary, AccordionDetails } from '@mui/material';
+import { Dialog, DialogTitle, Box, DialogContent, IconButton, Grid, Button, Container, Typography, Paper, TableContainer, Table, TableHead, TableRow, TableCell, TableBody, Accordion, AccordionSummary, AccordionDetails } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 
 import { auth } from '../config/firebase';
+import Iconify from '../components/iconify';
 import associationData from '../sections/@dashboard/algorithms/associationData';
+import BatteryBar from '../sections/@dashboard/algorithms/batteryBar';
 
 // ----------------------------------------------------------------------
 
@@ -17,6 +18,13 @@ export default function AnalyticsPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [foundAssociations, setFoundAssociations] = useState([]);
   const [isButtonClicked, setIsButtonClicked] = useState(false); // test | So "no association found" text would only be visible when user click button
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedAssociation, setSelectedAssociation] = useState(null);
+
+  const handleAssociationClick = (value) => {
+    setIsDialogOpen(true); 
+    setSelectedAssociation(value);
+  };
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
@@ -69,6 +77,20 @@ export default function AnalyticsPage() {
         <title> Predictive Analytics | KGH </title>
       </Helmet>
 
+      <Dialog open={isDialogOpen} onClose={() => setIsDialogOpen(false)}>
+        <DialogTitle>Additional Metrics</DialogTitle>
+        <DialogContent sx={{ minWidth: '500px' }}>
+          {selectedAssociation !== null && (
+            <Typography>
+              <b>Lift:</b> {selectedAssociation.Lift.toFixed(4)}<br />
+              <b>Leverage:</b> {selectedAssociation.Leverage.toFixed(4)}<br />
+              <b>Conviction:</b> {selectedAssociation.Conviction.toFixed(4)}<br />
+              <b>Zhang's Metric:</b> {selectedAssociation.ZhangsMetric.toFixed(4)}<br />
+            </Typography>
+          )}
+        </DialogContent>
+      </Dialog>
+
       <Container>
         <Typography variant="h4" sx={{ mb: 5 }}>
           Predictive Analytics
@@ -76,18 +98,16 @@ export default function AnalyticsPage() {
 
         <Accordion sx={{borderRadius: '10px', backgroundColor: '#f5f5f5', mb: 5 }}>
           <AccordionSummary expandIcon={<ExpandMoreIcon />} aria-controls="panel2a-content" id="panel2a-header">
-            <Typography variant="h4">Barthel ADL Predictions</Typography>
+            <Typography variant="h4">Barthel ADL - Predictions on Length of Stay</Typography>
           </AccordionSummary>
           <AccordionDetails>
-            <div>
-              <iframe style={{border: '0px'}} title="myFrame" height="1300px" width="100%" src="http://127.0.0.1:5000/" />      
-            </div>
+            <div><iframe style={{ border: '0px' }} title="myFrame" height="1300px" width="100%" src="http://127.0.0.1:5000/" /></div>
           </AccordionDetails>
         </Accordion>
 
         <Accordion sx={{ borderRadius: '10px', backgroundColor: '#f5f5f5', mb: 5 }}>
           <AccordionSummary expandIcon={<ExpandMoreIcon />} aria-controls="panel2a-content" id="panel2a-header">
-            <Typography variant="h4">Barthel ADL Associations</Typography>
+            <Typography variant="h4">Barthel ADL - Risk Associations</Typography>
           </AccordionSummary>
           <AccordionDetails>
             <Select
@@ -108,14 +128,11 @@ export default function AnalyticsPage() {
                     <TableHead>
                       <TableRow>
                         <TableCell>No.</TableCell>
-                        <TableCell>Antecedents</TableCell>
-                        <TableCell>Consequents</TableCell>
-                        <TableCell>Support</TableCell>
-                        <TableCell>Confidence</TableCell>
-                        <TableCell>Lift</TableCell>
-                        <TableCell>Leverage</TableCell>
-                        <TableCell>Conviction</TableCell>
-                        <TableCell>Zhang's Metric</TableCell>
+                        <TableCell>Problem</TableCell>
+                        <TableCell>Risk</TableCell>
+                        <TableCell>Probability</TableCell>
+                        <TableCell>Accuracy</TableCell>
+                        <TableCell>&nbsp;</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
@@ -124,12 +141,17 @@ export default function AnalyticsPage() {
                           <TableCell>{index + 1}</TableCell>
                           <TableCell>{association.Antecedents}</TableCell>
                           <TableCell>{association.Consequents}</TableCell>
-                          <TableCell>{association.Support.toFixed(4)}</TableCell>
-                          <TableCell sx={{borderRight: '1px solid #CCCCCC'}}>{association.Confidence.toFixed(4)}</TableCell>
-                          <TableCell sx={{color: '#888888'}}>{association.Lift.toFixed(4)}</TableCell>
-                          <TableCell sx={{color: '#888888'}}>{association.Leverage.toFixed(4)}</TableCell>
-                          <TableCell sx={{color: '#888888'}}>{association.Conviction.toFixed(4)}</TableCell>
-                          <TableCell sx={{color: '#888888'}}>{association.ZhangsMetric.toFixed(4)}</TableCell>
+                          <TableCell sx={{ textAlign: "left" }}> 
+                            <BatteryBar percentage={(association.Support * 100).toFixed(1)} />
+                            {(association.Support * 100).toFixed(1)}%
+                          </TableCell>
+                          <TableCell sx={{ textAlign: "left" }}>
+                            <BatteryBar percentage={(association.Confidence * 100).toFixed(1)} />
+                            {(association.Confidence * 100).toFixed(1)}%
+                          </TableCell>
+                          <TableCell align="right">
+                            <IconButton size="large" color="inherit" onClick={() => handleAssociationClick(association)}><Iconify icon={'uil:analytics'} /></IconButton>
+                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>

@@ -32,6 +32,8 @@ export default function AppWidgetSummary({ title, total, icon, color = 'primary'
         textAlign: 'center',
         color: (theme) => theme.palette[color].darker,
         bgcolor: (theme) => theme.palette[color].lighter,
+        transition: 'background-color 0.2s ease', 
+        '&:hover': { backgroundColor: (theme) => theme.palette[color].light },
         ...sx,
       }}
       {...other}

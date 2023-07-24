@@ -76,7 +76,7 @@ export default function Nav({ openNav, onCloseNav }) {
       </Box>
       <NavSection data={navConfig} />
       <br /><Divider /><br />
-      <Typography variant="h6" gutterBottom sx={{ml: 1, mb: 2}}>
+      <Typography variant="h6" gutterBottom sx={{ml: 1, mb: 2, color: '#5A5A5A'}}>
         Recently Updated Patients
       </Typography>
       <Box sx={{ml: -1, mr: 1}}>

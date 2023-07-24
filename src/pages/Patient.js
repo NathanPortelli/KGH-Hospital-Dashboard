@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 
+import { format } from 'date-fns';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -14,7 +15,7 @@ import dayjs from 'dayjs';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 
 // @mui
-import { Tabs, Tab, Grid, Button, Typography, TextField, InputLabel, Input, FormControl, Select, MenuItem, Box, Accordion, AccordionSummary, AccordionDetails, Dialog, DialogTitle, DialogContent, DialogActions} from '@mui/material';
+import { ListItemIcon, ListItemText, Popover, Tabs, Tab, Grid, Button, Typography, TextField, InputLabel, Input, FormControl, Select, MenuItem, Box, Accordion, AccordionSummary, AccordionDetails, Dialog, DialogTitle, DialogContent, DialogActions} from '@mui/material';
 
 import { doc, addDoc, setDoc, collection, getDocs, query, where, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import { db, auth } from '../config/firebase';
@@ -27,10 +28,40 @@ import { isNameValid, isIDNumValid, isAgeValid, isDOBValid, isAdminDateValid } f
 
 // ----------------------------------------------------------------------
 
+// Function to calculate age based on DOB
+const calculateAge = (dob) => {
+  const currentDate = new Date();
+  const birthDate = new Date(dob);
+  let age = currentDate.getFullYear() - birthDate.getFullYear();
+  const monthDiff = currentDate.getMonth() - birthDate.getMonth();
+
+  if (monthDiff < 0 || (monthDiff === 0 && currentDate.getDate() < birthDate.getDate())) {
+    age-=1;
+  }
+
+  return age;
+};
+
 export default function PatientPage() {
   const { idNum } = useParams();
 
   const [tabValue, setTabValue] = useState(0);
+  const [openPopover, setOpenPopover] = useState(null);
+  const handleOpenPopover = (event) => {
+    if (openPopover && openPopover === event.currentTarget) { setOpenPopover(null); } else { setOpenPopover(event.currentTarget); } 
+  };
+  const handleClosePopover = (event) => {
+    setOpenPopover(null);
+  };
+
+  const handleDOBInputChange = (dateString) => {
+    const dateDOB = new Date(dateString);
+    const formattedDate = format(dateDOB, 'yyyy-MM-dd');
+    setNewDOB(formattedDate);
+    // if (formattedDate instanceof Date) {
+    //   setNewAge(calculateAge(formattedDate));
+    // }
+  };  
 
   const navigate = useNavigate();
 
@@ -46,9 +77,9 @@ export default function PatientPage() {
   const [newSex, setNewSex] = useState("");
   const [newLocality, setNewLocality] = useState("");
   const [newAge, setNewAge] = useState(0);
-  const [newDOB, setNewDOB] = useState(0);
+  const [newDOB, setNewDOB] = useState("");
 
-  const [newAdmDate, setNewAdmDate] = useState(0);
+  const [newAdmDate, setNewAdmDate] = useState("");
   const [newAdmThru, setNewAdmThru] = useState("");
   const [newAdmConsultant, setNewAdmConsultant] = useState("");
   const [newAdmMainDiag, setNewAdmMainDiag] = useState("");
@@ -256,7 +287,8 @@ export default function PatientPage() {
         setNewIDNum(newIDNum);
         setNewSex(doc.data().Sex);
         setNewLocality(doc.data().Locality);
-        setNewAge(doc.data().Age);
+        // setNewAge(doc.data().Age);
+        setNewAge(calculateAge(newDOB));
         setNewDOB(doc.data().DOB);
         setPatientDocumentId(doc.id);
 
@@ -312,7 +344,12 @@ export default function PatientPage() {
       console.log('An error occurred while fetching patient details.', e);
     }
   };
-  useEffect(() => { getPatientDetails(); }, []);
+  useEffect(() => {
+    getPatientDetails();
+    if (newDOB) {
+      setNewAge(calculateAge(newDOB));
+    }
+  }, [newDOB]);
 
   const deletePatient = async () => {
     try {
@@ -392,14 +429,38 @@ export default function PatientPage() {
           <title> {newFirstName} {newLastName} | KGH </title>
         </Helmet>
         <Grid container spacing={1} ml={5} alignItems="center">
-          <Grid item xs={6}>
+          <Grid item xs={10}>
             <Typography variant="h4" gutterBottom> {newFirstName} {newLastName} </Typography>
             <Typography gutterBottom mb={5}> {newIDNum} </Typography>
           </Grid>
-          <Grid item xs={5} textAlign="right">
-            <Button variant="contained" color="error" startIcon={<Iconify icon="material-symbols:delete" />} onClick={() => setDeleteDialogOpen(true)} sx={{ minWidth: '150px' }}>
-              Delete Patient
-            </Button>
+          <Grid item xs={2} textAlign="right">
+            <Grid onClick={handleOpenPopover} onClose={handleClosePopover} container direction="row" alignItems="center" sx={{ cursor: "pointer", ml: 3, position: 'relative', padding: '8px', }}>
+              <Iconify icon="tabler:dots" />
+              <Popover
+                open={Boolean(openPopover)}
+                anchorEl={openPopover}
+                onClose={handleClosePopover}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+                PaperProps={{ sx: { p: 0, mt: 1.5, ml: 0.75,
+                    width: 225,
+                    '& .MuiMenuItem-root': {
+                      typography: 'body2',
+                      borderRadius: 0.75,
+                    },
+                  },
+                }}
+              >
+                <MenuItem onClick={() => setDeleteDialogOpen(true)} sx={{ backgroundColor: 'red', '&:hover': { backgroundColor: 'red' }, }}>
+                  <ListItemIcon>
+                    <Iconify icon="material-symbols:delete" sx={{ color: 'white' }} />
+                  </ListItemIcon>
+                  <ListItemText primaryTypographyProps={{ color: 'white' }}>
+                    Delete Patient
+                  </ListItemText>
+                </MenuItem>
+              </Popover>
+            </Grid>
           </Grid>
         </Grid>
 
@@ -422,15 +483,15 @@ export default function PatientPage() {
                 <TextField required id="lastName" name="lastName" label="Last Name" fullWidth autoComplete="family-name" variant="standard" value={newLastName} onChange={(e) => setNewLastName(e.target.value)} error={!fieldValidity.lastName} helperText={!fieldValidity.lastName && "Use only letters, '.', or '-'"}/>
               </Grid>
               <Grid item xs={12}>
-                <TextField required id="idnum" name="idnum" label="ID Card Number" fullWidth autoComplete="idnum" variant="standard" value={newIDNum} onChange={(e) => setNewIDNum(e.target.value)} error={!fieldValidity.idNum} helperText={!fieldValidity.idNum && "The format should be numbers, followed by a letter."}/>
+                <TextField required id="idnum" name="idnum" label="ID Card Number" fullWidth autoComplete="idnum" variant="standard" value={newIDNum} error={!fieldValidity.idNum} helperText={!fieldValidity.idNum && "The format should be numbers, followed by a letter."}/>
               </Grid> 
               <Grid item xs={12} sm={6}>
-              <TextField id="age" name="age" label="Age" fullWidth autoComplete="age" variant="standard" type="number" value={newAge} inputProps={{ max: 120, inputcomponent: Input }} onChange={(e) => setNewAge(Number(e.target.value))} error={!fieldValidity.age} helperText={!fieldValidity.age && "Please input only numbers between 0 and 120."}/>
+                <LocalizationProvider dateAdapter={AdapterDayjs}>
+                  <DatePicker id="dob" name="dob" slotProps={{ textField: { fullWidth: true } }} format="DD-MM-YYYY" label="Date of Birth" value={dayjs(newDOB)} onChange={(date) => handleDOBInputChange(date)} error={!fieldValidity.dob} helperText={!fieldValidity.dob && "Please input a valid date."}/>
+                </LocalizationProvider>
               </Grid>
               <Grid item xs={12} sm={6}>
-                <LocalizationProvider dateAdapter={AdapterDayjs}>
-                  <DatePicker id="dob" name="dob" slotProps={{ textField: { fullWidth: true } }} format="DD-MM-YYYY" label="Date of Birth" value={dayjs(newDOB)} onChange={(e) => setNewDOB(Date(e.target.value))} error={!fieldValidity.dob} helperText={!fieldValidity.dob && "Please input a valid date."}/>
-                </LocalizationProvider>
+                <TextField id="age" name="age" label="Age" fullWidth autoComplete="age" variant="standard" type="number" value={newAge} inputProps={{ max: 120, readOnly: true }} disabled onChange={(e) => setNewAge(Number(e.target.value))} error={!fieldValidity.age} helperText={!fieldValidity.age && "Please input only numbers between 0 and 120."}/>
               </Grid>
               <CustomFormBox title="Sex">
                 <Select labelId="sex" id="sex" label="Sex" value={newSex} onChange={(e) => setNewSex(e.target.value)}>

@@ -66,8 +66,8 @@ export default function AppCurrentVisits({ title, subheader, chartColors, chartD
   });
 
   return (
-    <Card {...other}>
-      <CardHeader title={title} subheader={subheader} />
+    <Card {...other} sx={{transition: 'background-color 0.2s ease', '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.1)', },}}>
+      <CardHeader title={title} subheader={subheader}  />
 
       <StyledChartWrapper dir="ltr">
         <ReactApexChart type="pie" series={chartSeries} options={chartOptions} height={280} />

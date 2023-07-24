@@ -11,15 +11,15 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 
 // @mui
-import { Grid, Button, Container, Stack, Typography, TextField, InputLabel, Input, FormControl, Select, MenuItem, Box } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Grid, Button, Container, Stack, Typography, TextField, InputLabel, Input, FormControl, Select, MenuItem, Box } from '@mui/material';
 
 import { getDocs, doc, updateDoc, addDoc, collection } from 'firebase/firestore';
 import { db, auth } from '../config/firebase';
 import Iconify from '../components/iconify';
-
+// components
 import { isNameValid, isAgeValid, isIDNumValid, isAdminDateValid, isDOBValid, } from '../validations/validation'
 import CustomBox from '../layouts/CustomBox';
-
+import { handleDroppedFile } from '../sections/@dashboard/patient/import';
 // ----------------------------------------------------------------------
 
 export default function NewPatientPage() {
@@ -75,6 +75,61 @@ export default function NewPatientPage() {
     const dateDOB = new Date(dateString);
     const formattedDate = format(dateDOB, 'yyyy-MM-dd');
     setNewDOB(formattedDate);
+  };
+
+  const [isFileDragging, setIsFileDragging] = useState(false);
+
+  useEffect(() => {
+    const handleDragEnter = (event) => {
+      event.preventDefault();
+      if (!event.target.classList.contains('file-upload-input')) {
+        setIsFileDragging(true);
+        event.dataTransfer.dropEffect = 'copy';
+      }
+    };
+    const handleDragOver = (event) => {
+      event.preventDefault();
+      if (!event.target.classList.contains('file-upload-input')) { event.dataTransfer.dropEffect = 'copy'; }
+    };
+    const handleDragLeave = (event) => {
+      if (!event.currentTarget.contains(event.relatedTarget)) { setIsFileDragging(false); } // Check if the related target is a child of the drop area
+    };
+
+    const handleDrop = (event) => {
+      event.preventDefault();
+      setIsFileDragging(false);
+      const files = event.dataTransfer.files;
+      if (files.length > 0) {
+        const file = files[0];
+        handleDroppedFile(file);
+      }
+    };
+
+    // Add event listeners for drag and drop
+    document.addEventListener('dragenter', handleDragEnter);
+    document.addEventListener('dragover', handleDragOver);
+    document.addEventListener('dragleave', handleDragLeave);
+    document.addEventListener('drop', handleDrop);
+
+    // Clean up event listeners
+    return () => {
+      document.removeEventListener('dragenter', handleDragEnter);
+      document.removeEventListener('dragover', handleDragOver);
+      document.removeEventListener('dragleave', handleDragLeave);
+      document.removeEventListener('drop', handleDrop);
+    };
+  }, []);
+
+  const handleFileUpload = (event) => {
+    const file = event.target.files[0];
+    handleDroppedFile(file);
+  };
+  const [openDialog, setOpenDialog] = useState(false);
+  const handleOpenDialog = () => {
+    setOpenDialog(true);
+  };
+  const handleCloseDialog = () => {
+    setOpenDialog(false);
   };
 
   // VALIDATIONS
@@ -168,13 +223,71 @@ export default function NewPatientPage() {
         <title> Add New Patient | KGH </title>
       </Helmet> 
 
+      <Dialog open={openDialog} onClose={handleCloseDialog}>
+          <DialogTitle>Upload in Bulk</DialogTitle>
+          <DialogContent>
+            <Container>
+              <input type="file" id="file-upload-input" className="file-upload-input" accept=".xlsx" onChange={handleFileUpload} style={{display: 'none'}}/>
+              <label htmlFor="file-upload-input" 
+                onDragOver={(e) => e.preventDefault()} 
+                onDragEnter={(e) => { e.preventDefault(); setIsFileDragging(true); }}
+                onDragLeave={(e) => { e.preventDefault(); setIsFileDragging(false); }}
+                style={{ padding: '2rem', backgroundColor: isFileDragging ? 'cyan' : 'lightblue', border: '2px dashed gray', borderRadius: '5px', cursor: 'pointer', height: '750px',
+                  width: '100%', margin: '1rem 0', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', textAlign: 'center', outline: 'none',}}>
+                <Iconify icon="eva:upload-fill" style={{ width: '65px', height: '65px', marginRight: '0.5rem' }} />
+                <Typography sx={{mt: 3}}variant="h4" gutterBottom>Drag and drop your XLSX file here</Typography>
+                <Typography sx={{mt: 1, mb: 2}} gutterBottom>
+                  Ensure that the file is in <b>.XLSX</b> format and that it contains some of the following patient details:<br /><hr />
+                <Typography variant="h6" sx={{mb: 2}}>Personal Details</Typography>
+                <ul style={{columns: '3', listStyle:'none'}}>
+                  <li>ID Number</li>
+                  <li>First Name</li>
+                  <li>Last Name</li>
+                  <li>Sex (M/F)</li>
+                  <li>Age</li>
+                  <li>Date of Birth</li>
+                  <li>Locality</li>
+                </ul><br /><hr />
+                <Typography variant="h6" sx={{mb: 2}}>Admission Details</Typography>
+                <ul style={{columns: '3', listStyle:'none'}}>
+                  <li>Admission Through</li>
+                  <li>Admission Ward</li>
+                  <li>Date of Admission</li>
+                  <li>Consultant</li>
+                  <li>Main Diagnosis</li>
+                  <li>Other Diagnosis</li>
+                </ul><br /><hr />
+                <Typography variant="h6" sx={{mb: 2}}>Barthel Admission Scores</Typography>
+                  <ul style={{columns: '3', listStyle:'none'}}>
+                    <li>Bowels</li>
+                    <li>Transferring</li>
+                    <li>Bladder</li>
+                    <li>Mobility</li>
+                    <li>Grooming</li>
+                    <li>Dressing</li>
+                    <li>Toilet Use</li>
+                    <li>Stairs</li>
+                    <li>Feeding</li>
+                    <li>Bathing</li>
+                  </ul><br /><hr />
+                </Typography>
+                <Button variant="contained" startIcon={<Iconify icon="eva:upload-fill" />}>{isFileDragging ? 'Drop the file here' : 'browse files'}</Button>
+                <br />
+              </label>
+            </Container>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleCloseDialog}>Cancel</Button>
+          </DialogActions>
+        </Dialog>
+
       <Container>
-        <Stack direction="row" alignItems="center" justifyContent="space-between" mb={5}>
+        <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{mb: 3}}>
           <Typography variant="h4" gutterBottom>
             Add New Patient
           </Typography>
+          <Button variant='contained' sx={{ml: 2}} onClick={handleOpenDialog} startIcon={<Iconify icon="material-symbols:upload" />}>Upload in Bulk</Button>
         </Stack>
-
         <CustomBox>
           <Typography variant="h6" gutterBottom>
             Personal Details

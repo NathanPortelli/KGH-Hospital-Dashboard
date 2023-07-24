@@ -12,7 +12,7 @@ const navConfig = [
     icon: <Equalizer/>,
   },
   {
-    title: 'add patient',
+    title: 'add patients',
     path: '/dashboard/newpatient',
     icon: <PersonAddAlt/>,
   },

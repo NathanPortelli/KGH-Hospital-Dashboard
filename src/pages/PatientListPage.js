@@ -443,7 +443,7 @@ export default function UserPage() {
                           <Button size="small" onClick={() => handleOpenStatusDialog(row.id)} style={{ color: 'white', backgroundColor: getPatientStatusColor(row.patientStatus) }}>{row.patientStatus}</Button>
                         </TableCell>
                         <TableCell align="right">
-                          <IconButton size="large" color="inherit" onClick={() => handleEditClick(IDNum)}><Iconify icon={'tabler:edit'} /></IconButton>
+                          <IconButton size="large" color="inherit" onClick={() => handleEditClick(IDNum)}><Iconify icon={'tabler:eye-edit'} /></IconButton>
                         </TableCell>
                       </TableRow>
                     );

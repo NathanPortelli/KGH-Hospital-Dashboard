@@ -120,9 +120,7 @@ const handleDroppedFile = async (file) => {
 
   jsonData.forEach(async (row, index) => {
     if (index === 0) return; // To skip the header row
-
     const patientData = {};
-
     headersToProcess.forEach((header) => {
       const headerIndex = jsonData[0].indexOf(header);
       if (headerIndex !== -1) {
@@ -140,7 +138,7 @@ const handleDroppedFile = async (file) => {
     }
   });
 
-  toast.success('Patients successfully imported. Refresh the page to view.');
+  toast.success('Patients successfully imported. Refresh the page to view new records.');
 };
 
 export { handleDroppedFile };

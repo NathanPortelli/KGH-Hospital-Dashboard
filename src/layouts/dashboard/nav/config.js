@@ -1,5 +1,6 @@
 import { Dashboard, RecentActors, Equalizer, PersonAddAlt } from '@mui/icons-material';
 
+// List of navbar options prior to "Recently Updated Patients" & their icons
 const navConfig = [
   {
     title: 'dashboard',

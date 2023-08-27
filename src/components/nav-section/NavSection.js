@@ -40,7 +40,7 @@ function NavItem({ item }) {
         '&.active': {
           borderLeft: '4px solid #ffffff',
           color: '#ffffff',
-          bgcolor: '#000080',
+          bgcolor: '#ba2737',
           fontWeight: 'fontWeightBold',
           paddingLeft: '12px',
           position: 'relative',
@@ -50,9 +50,7 @@ function NavItem({ item }) {
       }}
     >
       <StyledNavItemIcon>{icon && icon}</StyledNavItemIcon>
-
       <ListItemText disableTypography primary={title} />
-
       {info && info}
     </StyledNavItem>
   );

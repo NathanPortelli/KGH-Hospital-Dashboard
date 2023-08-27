@@ -1,6 +1,6 @@
 import { Helmet } from 'react-helmet-async';
 import { filter } from 'lodash';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 
 import { toast } from 'react-toastify';
 
@@ -8,8 +8,10 @@ import { toast } from 'react-toastify';
 import { getDocs, collection, query, limit, startAfter } from 'firebase/firestore';
 import { useTheme } from '@mui/material/styles';
 import { useState, useEffect } from 'react';
-import { FormControlLabel, Checkbox, Box, Dialog, DialogTitle, DialogContent, Button, Grid, Container, Typography } from '@mui/material';
+import { Card, IconButton, FormControlLabel, Checkbox, Box, Dialog, DialogTitle, DialogContent, Button, Grid, Container, Typography } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
+import CloseIcon from "@mui/icons-material/Close";
+
 // sections
 import { AppCurrentVisits, AppChart, AppWidgetSummary, } from '../sections/@dashboard/app';
 import LatestAdmissionsTable from '../sections/@dashboard/patient/lastestadmissions';
@@ -19,18 +21,21 @@ import Iconify from '../components/iconify';
 
 // ----------------------------------------------------------------------
 
+// Used in getComparator for descending sort
 function descendingComparator(a, b, orderBy) {
   if (b[orderBy] < a[orderBy]) { return -1; }
   if (b[orderBy] > a[orderBy]) { return 1; }
   return 0;
 }
 
+// Used in applySortFilter to order patients
 function getComparator(order, orderBy) {
   return order === 'desc'
     ? (a, b) => descendingComparator(a, b, orderBy)
     : (a, b) => -descendingComparator(a, b, orderBy);
 }
 
+// Used to sort the list of patients (filteredPatients) shown on dashboard
 function applySortFilter(array, comparator, query) {
   const stabilizedThis = array.map((el, index) => [el, index]);
   stabilizedThis.sort((a, b) => {
@@ -56,26 +61,27 @@ function applySortFilter(array, comparator, query) {
 
 export default function DashboardAppPage() {
   const theme = useTheme();
-  const [isLOSDialogOpen, setIsLOSDialogOpen] = useState(false);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [isPersonnelDialogOpen, setIsPersonnelDialogOpen] = useState(false);
-  const [isChartDialogOpen, setIsChartDialogOpen] = useState(false);
-  const [isAgeDialogOpen, setIsAgeDialogOpen] = useState(false);
-  const [isTransfersDialogOpen, setIsTransfersDialogOpen] = useState(false);
-  const [isAdmissionsDialogOpen, setIsAdmissionsDialogOpen] = useState(false);
-  const [wardList, setWardList] = useState([]);
-  const [gridVisibility, setGridVisibility] = useState({ grid1: true, grid2: true, grid3: true, grid4: true, grid5: true, });
+  const [isLOSDialogOpen, setIsLOSDialogOpen] = useState(false); // Used to open the "More Info" button in "Average LOS (Days)" info button
+  const [isDialogOpen, setIsDialogOpen] = useState(false); // Used to open the "More Info" button in "Available beds" info button & "Patient by ward" chart
+  const [isPersonnelDialogOpen, setIsPersonnelDialogOpen] = useState(false); // Used to open the "More Info" button in "Available Personnel" info button
+  const [isChartDialogOpen, setIsChartDialogOpen] = useState(false); // Used to open the Chart List Dialog for the "Show/Hide Charts" button
+  const [isAgeDialogOpen, setIsAgeDialogOpen] = useState(false); // Used to open the "More Info" button in "Admissions by Age" chart
+  const [isTransfersDialogOpen, setIsTransfersDialogOpen] = useState(false); // Used to open the "More Info" button in "Admissions/Discharges" chart
+  const [isAdmissionsDialogOpen, setIsAdmissionsDialogOpen] = useState(false); // Used to open the "More Info" button in "Admission/Discharges per ward" chart
+  const [wardList, setWardList] = useState([]); // Used for getting and setting the ward list from wards collection in Firestore
+  const [gridVisibility, setGridVisibility] = useState({ grid1: true, grid2: true, grid3: true, grid4: true, grid5: true, }); // Sets the visibility of the charts, all set to 'true' when initially loading
 
-  const [patientList, setPatientList] = useState([]);
-  const patientCollectionRef = collection(db, 'patients');
+  const [patientList, setPatientList] = useState([]); // Used for the patient list from patients colleciton in Firestore
+  const patientCollectionRef = collection(db, 'patients'); // Used for the patient list from patients colleciton in Firestore
 
-  const [lastDoc, setLastDoc] = useState(null);
-  const [startAfterDoc, setStartAfterDoc] = useState(null);
+  const [lastDoc, setLastDoc] = useState(null); // Used while getting patient list to limit reads
+  const [startAfterDoc, setStartAfterDoc] = useState(null); // Used while getting patient list to limit reads
 
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  // Checks if user is logged in
+  const [setIsAuthenticated] = useState(false);
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
-      if (user) {
+      if (user) { 
         setIsAuthenticated(true); // User is logged in
       } else {
         setIsAuthenticated(false); // User is logged out
@@ -86,20 +92,22 @@ export default function DashboardAppPage() {
   
   const navigate = useNavigate();
 
-  const handleAverageLOS = () => { setIsLOSDialogOpen(true); };
-  const handleAvailableBedsClick = () => { setIsDialogOpen(true); };
-  const handleAvailablePersonnelClick = () => { setIsPersonnelDialogOpen(true); };
-  const handleChartsToggleClick = () => { setIsChartDialogOpen(true); };
-  const handleAgeToggleClick = () => { setIsAgeDialogOpen(true); };
-  const handleTransfersToggleClick = () => { setIsTransfersDialogOpen(true); };
-  const handleAdmissionsToggleClick = () => { setIsAdmissionsDialogOpen(true); };
+  const handleAverageLOS = () => { setIsLOSDialogOpen(true); }; // Sets the Dialog box for the "Average LOS (Days)" info button to appear
+  const handleAvailableBedsClick = () => { setIsDialogOpen(true); }; // Sets the Dialog box for the "Available Beds" info button to appear
+  const handleAvailablePersonnelClick = () => { setIsPersonnelDialogOpen(true); }; // Sets the Dialog box for the "Available Personnel" info button to appear
+  const handleChartsToggleClick = () => { setIsChartDialogOpen(true); }; // Sets the Chart List Dialog for the "Show/Hide Charts" button to appear
+  const handleAgeToggleClick = () => { setIsAgeDialogOpen(true); }; // Sets the Dialog box for the "Admissions by Age" chart to appear
+  const handleTransfersToggleClick = () => { setIsTransfersDialogOpen(true); }; // Sets the Dialog box for the "Transfers from" chart to appear
+  const handleAdmissionsToggleClick = () => { setIsAdmissionsDialogOpen(true); }; // Sets the Dialog box for the "Admission/Discharges per ward" chart to appear
 
+  // Used for the "Transfers from" popup Dialog
   const [selectedTransfers, setSelectedTransfers] = useState(null);
-  const [patientCount, setPatientCount] = useState(10);
-  const [wardName, setWardName] = useState("Internal Transfers");
+  const [patientCount, setPatientCount] = useState(10); // Initially set to show details for "Internal" button
+  const [wardName, setWardName] = useState("Internal Transfers"); // Initially set to show details for "Internal" button
   const handleTransfersButton = (buttonName) => {
     setSelectedTransfers(buttonName);
     switch (buttonName) {
+      // Changes the values in the header when each button in the "Transfers from" popup Dialog are pressed
       case 'Internal': setPatientCount(10); setWardName("Internal Transfers"); break;
       case 'MDH': setPatientCount(55); setWardName("Mater Dei Hospital"); break;
       case 'Own': setPatientCount(30); setWardName("Own Home"); break;
@@ -111,12 +119,14 @@ export default function DashboardAppPage() {
     }
   };
 
+  // Used for the "Admissions by Age" popup Dialog
   const [selectedAge, setSelectedAge] = useState(null);
-  const [ageCount, setAgeCount] = useState(13);
-  const [age, setAge] = useState("0-45");
+  const [ageCount, setAgeCount] = useState(13); // Initially set to show details for "0-45" button
+  const [age, setAge] = useState("0-45"); // Initially set to show details for "0-45" button
   const handleAgeButton = (buttonName) => {
     setSelectedAge(buttonName);
     switch (buttonName) {
+      // Changes the values in the header when each button in the "Admissions by Age" popup Dialog are pressed
       case '0-45': setAgeCount(13); setAge("0-45"); break;
       case '46-65': setAgeCount(25); setAge("46-65"); break;
       case '66-75': setAgeCount(108); setAge("66-75"); break;
@@ -127,10 +137,12 @@ export default function DashboardAppPage() {
     }
   };
 
+  // Headers for list of consultants in the "available personnel" list
   const personnelColumns = [
     { field: 'id', headerName: 'ID', width: 75 },
     { field: 'name', headerName: 'Consultant', width: 300 },
   ];
+  // List of consultants for "available personnel" list
   const personnelRows = [
     { id: 1, name: 'Dr. S. Abela' },
     { id: 2, name: 'Dr. E. Bellia' },
@@ -143,25 +155,32 @@ export default function DashboardAppPage() {
     { id: 9, name: 'Dr. M. A. Vassallo' },
   ];
 
+  // Sets date as "1 January 1900" rather than "1900-1-1" as saved in Firebase
   const formatDate = (dateString) => {
     const date = new Date(dateString);
-    const options = { day: 'numeric', month: 'long', year: 'numeric' };
+    const options = { day: 'numeric', month: 'short', year: 'numeric' };
     return date.toLocaleDateString(undefined, options);
   };  
 
+  // Gets list of patients from patients collection in Firestore
   const getPatientList = async (startAfterDoc) => {
     try {
       let data;
+      // Limited to 5 patients per view
       if (startAfterDoc) {
-        data = await getDocs(query(patientCollectionRef, startAfter(startAfterDoc), limit(5)));
+        // If not the first set of patients list, start from after the last viewed
+        data = await getDocs(query(patientCollectionRef, startAfter(startAfterDoc), limit(5))); 
       } else {
+        // If the first set of patients in the list
         data = await getDocs(query(patientCollectionRef, limit(5))); 
       }
       
+      // Get patient's details
       const patientData = data.docs.map((doc) => ({ ...doc.data(), id: doc.id }));
-      const lastDoc = data.docs[data.docs.length - 1];
+      const lastDoc = data.docs[data.docs.length - 1]; // Last viewed patient (for startAfterDoc)
       setLastDoc(lastDoc);
   
+      // Maps patient details that is included in admissiondetails map
       const newPatientList = patientData.map((patient) => {
         const admissionDetailsData = patient.admissiondetails || {};  
         return {
@@ -173,12 +192,13 @@ export default function DashboardAppPage() {
       });
       setPatientList(newPatientList);
     } catch (e) {
-      console.error(e);
-      toast.error("Error getting patient list. Please try again later.");
+      console.error("Error getting patient list: ", e);
+      toast.error("Error while getting list of patient. Please try again later.");
     }
   };
   useEffect(() => { getPatientList(startAfterDoc); }, [startAfterDoc]);
 
+  // Gets list of wards from wards collection
   useEffect(() => {
     const fetchWards = async () => {
       try {
@@ -187,25 +207,31 @@ export default function DashboardAppPage() {
         const wardsData = snapshot.docs.map((doc) => doc.data());
         setWardList(wardsData);
       } catch (error) {
+        toast.error("Error occurred while getting ward list. Please try again later.");
         console.error('Error fetching wards:', error);
       }
     };
     fetchWards();
   }, []);  
 
+  // For patient list
   const [page] = useState(0);
   const [order] = useState('desc');
-  const [orderBy] = useState('admdate');
+  const [orderBy] = useState('admitdate');
   const [filterName] = useState('');
   const [rowsPerPage] = useState(5);
 
+  // List of patients filtered by applySortFilter
   const filteredPatients = applySortFilter(patientList, getComparator(order, orderBy), filterName);
+  // For use to display current date as "January 1, 1900"
   const currentDate = new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric', });
 
-  if (!isAuthenticated) {
-    navigate('/login');
-    return null;
-  }
+  // Test - Temp removed while testing due to reloading sending user to login immediately
+  // useEffect(() => {
+  //   if (!isAuthenticated) {
+  //     navigate('/login');
+  //   }
+  // }, [isAuthenticated, navigate]);
     return (
       <>
       <Helmet>
@@ -218,36 +244,64 @@ export default function DashboardAppPage() {
           <Typography variant="h5" sx={{ mb: 5, fontWeight: 'normal' }}>{currentDate}</Typography>
         </Box>
         <Grid container spacing={1}>
-          <Grid item xs={12} md={7} lg={7} sx={{ml: 2, backgroundColor: '#ffffff' }}>
-            <Box sx={{ width: '100%' }} m={1} pt={1}>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-                <Typography variant="h6" component="div" sx={{ fontWeight: 'bold', fontSize: '1.2rem' }}> Latest Admissions </Typography>
-                <Box sx={{ display: 'flex', gap: 1 }}>
-                  <Button variant="contained" startIcon={<Iconify icon="eva:plus-fill" />} href="/dashboard/newpatient">Add New Patient</Button>
-                  <Button variant="contained" startIcon={<Iconify icon="ion:list" />} onClick={() => navigate('/dashboard/patientlist')}>Full List</Button>
+          {/* Patient list of "latest admissions" */}
+          <Grid item xs={12} md={8} lg={8}> 
+            <Card sx={{ pr: 3 }}>
+              <Box sx={{ width: '100%' }} m={1} pt={1}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+                  <Typography variant="h6" component="div" sx={{ fontWeight: 'bold', fontSize: '1.2rem', ml: 1 }}> Latest Admissions </Typography>
+                  <Box sx={{ display: 'flex', gap: 1 }}>
+                    <div> 
+                      {/* Takes user to Add Patients page */}
+                      <Button component={Link} to="/dashboard/newpatient" variant="contained" startIcon={<Iconify icon="eva:plus-fill" />}>Add New Patient</Button>
+                    </div>
+                    <div> 
+                      {/* Takes user to Patient List page */}
+                      <Button variant="contained" startIcon={<Iconify icon="ion:list" />} onClick={() => navigate('/dashboard/patientlist')}>Full List</Button>
+                    </div>
+                  </Box>
                 </Box>
+                <LatestAdmissionsTable patientList={filteredPatients.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)} formatDate={formatDate} />
               </Box>
-              <LatestAdmissionsTable patientList={filteredPatients.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)} formatDate={formatDate} />
-            </Box>
+            </Card>
           </Grid>
-          <Grid item xs={12} md={4} lg={4} sx={{ml: 2}}>
-            <Box sx={{ width: '100%', cursor: 'pointer'}} m={1} pt={1}>
-              <AppWidgetSummary title="Listed Patients" total={735} color="info" icon={'material-symbols:patient-list'} onClick={() => navigate('/dashboard/patientlist')}/>
-            </Box>
-            <Box sx={{ width: '100%', cursor: 'pointer' }} m={1} pt={1} onClick={handleAverageLOS}>
-              <AppWidgetSummary title="Average LOS (Days)" total={44} color="info" icon={'material-symbols:date-range'} />
-            </Box>
-            <Box sx={{ width: '100%', cursor: 'pointer' }} m={1} pt={1} onClick={handleAvailableBedsClick}>
-              <AppWidgetSummary title="Available Beds" total={wardList.reduce((total, ward) => total + ward.available, 0)} color="info" icon={'material-symbols:bed'} />
-            </Box>
-            <Box sx={{ width: '100%', cursor: 'pointer' }} m={1} pt={1} onClick={handleAvailablePersonnelClick}>
-              <AppWidgetSummary title="Available Personnel" total={39} color="info" icon={'material-symbols:groups'} />
-            </Box>
+          {/* List of information boxes */}
+          <Grid item xs={12} md={4} lg={4}> 
+            <Card sx={{ pr: 3 }}>
+              <Box sx={{ width: '100%', display: 'flex', mb: 1 }} m={1} pt={1} >
+                <Typography variant="h6" component="div" sx={{ fontWeight: 'bold', fontSize: '1.2rem', ml: 1, mb: 2}}>
+                  Hospital Information Summary
+                </Typography>
+              </Box>
+              {/* Onclick takes patient to Patient List page */}
+              <Box sx={{ width: '100%', cursor: 'pointer'}} m={1} pt={1}>
+                <AppWidgetSummary title="Listed Patients" total={735} color="info" icon={'material-symbols:patient-list'} onClick={() => navigate('/dashboard/patientlist')}/>
+              </Box>
+              {/* Onclick outputs Dialog popup with Length of Stay chart */}
+              <Box sx={{ width: '100%', cursor: 'pointer' }} m={1} pt={1} onClick={handleAverageLOS}>
+                <AppWidgetSummary title="Average LOS (Days)" total={44} color="info" icon={'material-symbols:date-range'} />
+              </Box>
+              {/* Onclick takes patient to list of wards, number of available beds & total number of patients */}
+              <Box sx={{ width: '100%', cursor: 'pointer' }} m={1} pt={1} onClick={handleAvailableBedsClick}>
+                <AppWidgetSummary title="Available Beds" total={wardList.reduce((total, ward) => total + ward.available, 0)} color="info" icon={'material-symbols:bed'} />
+              </Box>
+              {/* Onclick takes patient to list of personnel types and available personnel table */}
+              <Box sx={{ width: '100%', cursor: 'pointer' }} m={1} mb={4} pt={1} onClick={handleAvailablePersonnelClick}>
+                <AppWidgetSummary title="Available Personnel" total={39} color="info" icon={'material-symbols:groups'} />
+              </Box>
+            </Card>
+
             {/* Dialog Boxes - Start */}
+
+            {/* Dialog box for 'Show/Hide Chart' button */}
             <Dialog open={isChartDialogOpen} onClose={() => setIsChartDialogOpen(false)}>
               <DialogTitle>Show/Hide Charts</DialogTitle>
+              <IconButton style={{ position: "absolute", top: "0", right: "0" }} onClick={() => setIsChartDialogOpen(false)}>
+                <CloseIcon />
+              </IconButton>
               <DialogContent sx={{ minWidth: '375px' }}>
                 <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                  {/* When ticked/unticked it displays/removed the chart using setGridVisibility */}
                   <FormControlLabel control={<Checkbox checked={gridVisibility.grid3} onChange={(event) => setGridVisibility((prevVisibility) => ({...prevVisibility, grid3: event.target.checked,}))}/>}
                     label="Admission/discharges per day"/>
                   <FormControlLabel control={<Checkbox checked={gridVisibility.grid4} onChange={(event) => setGridVisibility((prevVisibility) => ({...prevVisibility, grid4: event.target.checked,}))}/>}
@@ -261,8 +315,12 @@ export default function DashboardAppPage() {
                 </Box>
               </DialogContent>
             </Dialog>
+            {/* Dialog box for 'Admissions by Age' chart */}
             <Dialog open={isAgeDialogOpen} onClose={() => setIsAgeDialogOpen(false)}>
               <DialogTitle>Admissions by Age</DialogTitle>
+              <IconButton style={{ position: "absolute", top: "0", right: "0" }} onClick={() => setIsAgeDialogOpen(false)}>
+                <CloseIcon />
+              </IconButton>
               <DialogContent sx={{ minWidth: '500px' }}>
                 <Grid item xs={12} sx={{mb: 3}}>
                   <Button variant="outlined" sx={{ mr: 2 }} onClick={() => handleAgeButton('0-45')}>0-45</Button>
@@ -272,14 +330,19 @@ export default function DashboardAppPage() {
                   <Button variant="outlined" sx={{ mr: 2 }} onClick={() => handleAgeButton('86-95')}>86-95</Button>
                   <Button variant="outlined" sx={{ mr: 2 }} onClick={() => handleAgeButton('96+')}>96+</Button>
                 </Grid>
+                {/* Changes according to button pressed, using handleAgeButton */}
                 <Typography variant='h5' sx={{textAlign:"center", fontWeight:"bold", mb:2}}>Age Range {age}: {ageCount} patients</Typography>
                 <Grid item xs={12}>
                   <LatestAdmissionsTable patientList={filteredPatients.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)} formatDate={formatDate} />
                 </Grid>
               </DialogContent>
             </Dialog>
+            {/* Dialog box for 'Transfers from' chart */}
             <Dialog open={isTransfersDialogOpen} onClose={() => setIsTransfersDialogOpen(false)}>
               <DialogTitle>Transfers from</DialogTitle>
+              <IconButton style={{ position: "absolute", top: "0", right: "0" }} onClick={() => setIsTransfersDialogOpen(false)}>
+                <CloseIcon />
+              </IconButton>
               <DialogContent sx={{ minWidth: '500px' }}>
                 <Grid item xs={12} sx={{mb: 3}}>
                   <Button variant="outlined" sx={{ mr: 1, mt: 1 }} onClick={() => handleTransfersButton('Internal')}>Internal</Button>
@@ -290,29 +353,35 @@ export default function DashboardAppPage() {
                   <Button variant="outlined" sx={{ mr: 1, mt: 1 }} onClick={() => handleTransfersButton('Hospitals')}>Other Hospitals</Button>
                   <Button variant="outlined" sx={{ mr: 1, mt: 1 }} onClick={() => handleTransfersButton('Other')}>Other</Button>
                 </Grid>
+                {/* Changes according to button pressed, using handleTransfersButton */}
                 <Typography variant='h5' sx={{textAlign:"center", fontWeight:"bold", mb:2}}>{wardName}: {patientCount} patients</Typography>
                 <Grid item xs={12}>
                   <LatestAdmissionsTable patientList={filteredPatients.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)} formatDate={formatDate} />
                 </Grid>
               </DialogContent>
             </Dialog>
+            {/* Dialog box for 'Available Personnel' button */}
             <Dialog open={isPersonnelDialogOpen} onClose={() => setIsPersonnelDialogOpen(false)}>
               <DialogTitle>Available Personnel</DialogTitle>
+              <IconButton style={{ position: "absolute", top: "0", right: "0" }} onClick={() => setIsPersonnelDialogOpen(false)}>
+                <CloseIcon />
+              </IconButton>
               <DialogContent sx={{ minWidth: '500px' }}>
                 <Typography variant='h5' sx={{textAlign:"center", fontWeight:"bold", mb:2}}>Available Consultants: 9</Typography>
                 <Grid container spacing={2}>  
                   <Grid item xs={3}>
                     <Grid container spacing={1}>
                       <Grid item xs={12}>
-                        <Button variant="outlined" style={{ width: "100px", height: "50px",}} sx={{ mr: 1, mt: 1 }}>Physicians</Button>
-                        <Button variant="outlined" style={{ width: "100px", height: "50px",}} sx={{ mr: 1, mt: 1 }}>Nurses</Button>
-                        <Button variant="contained" style={{ width: "100px", height: "50px",}} sx={{ mr: 1, mt: 1 }}>Consultants</Button>
-                        <Button variant="outlined" style={{ width: "100px", height: "50px",}} sx={{ mr: 1, mt: 1 }}>Speech Therapists</Button>
-                        <Button variant="outlined" style={{ width: "100px", height: "50px",}} sx={{ mr: 1, mt: 1 }}>Occupational Therapists</Button>
-                        <Button variant="outlined" style={{ width: "100px", height: "50px",}} sx={{ mr: 1, mt: 1 }}>Podiatrists</Button>
-                        <Button variant="outlined" style={{ width: "100px", height: "50px",}} sx={{ mr: 1, mt: 1 }}>Specialists</Button>
-                        <Button variant="outlined" style={{ width: "100px", height: "50px",}} sx={{ mr: 1, mt: 1 }}>Social Workers</Button>
-                        <Button variant="outlined" style={{ width: "100px", height: "50px",}} sx={{ mr: 1, mt: 1 }}>Other</Button>
+                        <Button variant="outlined" style={{ width: "120px", height: "50px",}} sx={{ mr: 1, mt: 1 }}>Physicians</Button>
+                        <Button variant="outlined" style={{ width: "120px", height: "50px",}} sx={{ mr: 1, mt: 1 }}>Nurses</Button>
+                        <Button variant="outlined" style={{ width: "120px", height: "50px",}} sx={{ mr: 1, mt: 1 }}>Physiotherapist</Button>
+                        <Button variant="contained" style={{ width: "120px", height: "50px",}} sx={{ mr: 1, mt: 1 }}>Consultants</Button>
+                        <Button variant="outlined" style={{ width: "120px", height: "50px",}} sx={{ mr: 1, mt: 1 }}>Speech Therapists</Button>
+                        <Button variant="outlined" style={{ width: "120px", height: "50px",}} sx={{ mr: 1, mt: 1 }}>Occupational Therapists</Button>
+                        <Button variant="outlined" style={{ width: "120px", height: "50px",}} sx={{ mr: 1, mt: 1 }}>Podiatrists</Button>
+                        <Button variant="outlined" style={{ width: "120px", height: "50px",}} sx={{ mr: 1, mt: 1 }}>Specialists</Button>
+                        <Button variant="outlined" style={{ width: "120px", height: "50px",}} sx={{ mr: 1, mt: 1 }}>Social Workers</Button>
+                        <Button variant="outlined" style={{ width: "120px", height: "50px",}} sx={{ mr: 1, mt: 1 }}>Other</Button>
                       </Grid>
                     </Grid>
                   </Grid>
@@ -322,8 +391,12 @@ export default function DashboardAppPage() {
                 </Grid>
               </DialogContent>
             </Dialog>
+            {/* Dialog box for 'Average LOS (Days)' button */}
             <Dialog open={isLOSDialogOpen} onClose={() => setIsLOSDialogOpen(false)}>
               <DialogTitle>Length of Stay</DialogTitle>
+              <IconButton style={{ position: "absolute", top: "0", right: "0" }} onClick={() => setIsLOSDialogOpen(false)}>
+                <CloseIcon />
+              </IconButton>
               <Grid container spacing={2}>
                 <DialogContent sx={{ minWidth: '500px' }}>
                   <AppChart
@@ -344,32 +417,25 @@ export default function DashboardAppPage() {
                 </DialogContent>
               </Grid>
             </Dialog>
+            {/* Dialog box for 'Available Beds' button or the 'Patients by ward' chart */}
             <Dialog open={isDialogOpen} onClose={() => setIsDialogOpen(false)}>
               <DialogTitle>Available Beds</DialogTitle>
+              <IconButton style={{ position: "absolute", top: "0", right: "0" }} onClick={() => setIsDialogOpen(false)}>
+                <CloseIcon />
+              </IconButton>
               <Grid container spacing={2}>
                 <DialogContent sx={{ minWidth: '500px' }}>
                   <Box sx={{ display: 'flex', flexDirection: 'column', textAlign: 'center' }}>
-                    <Grid container spacing={1} alignItems="center" sx={{pl: 2, mb: 2}}>
-                      <Grid item xs={4}>
-                        <Box>
-                          <Typography sx={{fontWeight: 'bold'}}>Ward No.</Typography>
-                        </Box>
-                      </Grid>
-                      <Grid item xs={5}>
-                        <Box sx={{ display: 'inline-flex' }}>
-                          <Typography sx={{fontWeight: 'bold'}}> Available no. of beds </Typography>
-                        </Box>
-                      </Grid>
-                      <Grid item xs={3}>
-                        <Box sx={{ display: 'inline-flex' }}> 
-                          <Typography sx={{fontWeight: 'bold'}}> Total patients </Typography>
-                        </Box>
-                      </Grid>
+                    <Grid container spacing={1} alignItems="center" sx={{pl: 1, mb: 2}}>
+                      <Grid item xs={4}><Box sx={{ display: 'inline-flex' }}><Typography sx={{fontWeight: 'bold'}}>Ward No.</Typography></Box></Grid>
+                      <Grid item xs={5}><Box sx={{ display: 'inline-flex' }}><Typography sx={{fontWeight: 'bold'}}> Available no. of beds </Typography></Box></Grid>
+                      <Grid item xs={3}><Box sx={{ display: 'inline-flex' }}><Typography sx={{fontWeight: 'bold'}}> Total patients </Typography></Box></Grid>
                     </Grid>
                     {wardList
                       .sort((a, b) => a.wardno - b.wardno) // Sort wardList based on ward number
                       .map((ward) => (
-                        <Grid container spacing={1} alignItems="center" key={ward.wardno} sx={{pl: 2}}>
+                        <Grid container spacing={1} alignItems="center" key={ward.wardno}>
+                          {/* If available beds is equal to 0, display the values in red */}
                           <Grid item xs={4}>
                             <Box sx={{width: '100px', bgcolor: ward.available === 0 ? 'red' : '#D0F2FF', p: 2, mb: 1, display: 'inline-flex'}}>
                               <Typography sx={{ fontWeight: 'bold' }}>Ward {ward.wardno}</Typography>
@@ -391,8 +457,12 @@ export default function DashboardAppPage() {
                 </DialogContent>
               </Grid>
             </Dialog>
+            {/* Dialog box for 'Admission/Discharge' chart */}
             <Dialog Dialog open={isAdmissionsDialogOpen} onClose={() => setIsAdmissionsDialogOpen(false)}>
               <DialogTitle>Admission/Discharges per ward</DialogTitle>
+              <IconButton style={{ position: "absolute", top: "0", right: "0" }} onClick={() => setIsAdmissionsDialogOpen(false)}>
+                <CloseIcon />
+              </IconButton>
               <DialogContent sx={{ minWidth: '500px' }}>
                 <Grid container spacing={1}>  
                   <Grid item xs={12} sx={{mb: 3}}>
@@ -405,7 +475,7 @@ export default function DashboardAppPage() {
                   </Grid>
                 </Grid>
                 <AppChart
-                  title="Admissions/discharges on 15th July 2023"
+                  title="Admissions/Discharges on 15th July 2023"
                   chartLabels={['Ward 1', 'Ward 2', 'Ward 3', 'Ward 4', 'Ward 5', 'Ward 6', 'Ward 7', 'Ward 8', 'Ward 9', 'Ward 10']}
                   chartData={[
                     { name: 'Admissions', type: 'column', fill: 'solid', data: [3, 1, 0, 2, 0, 1, 0, 4, 5, 6], },
@@ -415,6 +485,7 @@ export default function DashboardAppPage() {
               </DialogContent>
             </Dialog>
             {/* Dialog Boxes - End */}
+
           </Grid>
         </Grid>
         <hr style={{ border:'0', marginBottom:'50px', marginTop:'50px', height:'0.5px', background:'#D3D3D3', }}/>
@@ -424,21 +495,25 @@ export default function DashboardAppPage() {
             Show / Hide Charts
           </Button>
         </Box>
+        {/* Charts are visible if gridVisibility is set to true (default) */}
+        {/* Chart containing admission/discharge numbers in the last 5 days */}
         <Grid container spacing={1}>
             {gridVisibility.grid3 && (
-              <Grid item xs={12} md={6} lg={6} sx={{ cursor: 'pointer' }} onClick={handleAdmissionsToggleClick}>
+              <Grid item xs={12} md={6} lg={6}>
                 <AppChart
-                  title="Admissions/discharges per day"
-                  chartLabels={['15/07', '16/07', '17/07', '18/07', '19/07', '20/07',]}
+                  title="Admissions/Discharges"
+                  chartLabels={['16/07', '17/07', '18/07', '19/07', '20/07',]}
                   chartData={[
-                    { name: 'Admissions', type: 'column', fill: 'solid', data: [3, 1, 0, 2, 0, 1], },
-                    { name: 'Discharges', type: 'column', fill: 'solid', data: [0, 1, 3, 1, 2, 2], },
+                    { name: 'Admissions', type: 'column', fill: 'solid', data: [3, 0, 2, 0, 1], },
+                    { name: 'Discharges', type: 'column', fill: 'solid', data: [1, 2, 0, 2, 2], },
                   ]}
+                  onClick={handleAdmissionsToggleClick}
                 />
               </Grid>
             )}
+            {/* Chart containing percentage of patients by ward */}
             {gridVisibility.grid4 && (
-              <Grid item xs={12} md={6} lg={6} sx={{ cursor: 'pointer' }} onClick={handleAvailableBedsClick}>
+              <Grid item xs={12} md={6} lg={6}>
                 <AppCurrentVisits
                   title="Patients by Ward"
                   chartData={[
@@ -454,9 +529,11 @@ export default function DashboardAppPage() {
                     { label: 'Ward 10', value: 19 },
                   ]}
                   chartColors={[ theme.palette.primary.main, theme.palette.info.main, theme.palette.warning.main, theme.palette.error.main, ]}
+                  onClick={handleAvailableBedsClick}
                 />
               </Grid>
             )}
+            {/* Chart containing the amount of time a number of patients have spent at the hospital */}
             {gridVisibility.grid1 && (
               <Grid item xs={12} md={12} lg={12} sx={{mt: 2, mb: 2}}>
                 <AppChart
@@ -477,8 +554,9 @@ export default function DashboardAppPage() {
                 />
               </Grid>
             )}
+            {/* Chart containing details of where patient was transferred from */}
             {gridVisibility.grid2 && (
-              <Grid item xs={12} md={6} lg={6} sx={{ cursor: 'pointer' }} onClick={handleTransfersToggleClick}>
+              <Grid item xs={12} md={6} lg={6}>
                 <AppCurrentVisits
                   title="Transfers from"
                   chartData={[
@@ -496,15 +574,18 @@ export default function DashboardAppPage() {
                     theme.palette.warning.main,
                     theme.palette.error.main,
                   ]}
+                  onClick={handleTransfersToggleClick} 
                 />
               </Grid>
             )}
+            {/* Chart containing the total number of admissions based off their age range */}
             {gridVisibility.grid5 && (
-              <Grid item xs={12} md={6} lg={6} sx={{ cursor: 'pointer' }} onClick={handleAgeToggleClick}>
+              <Grid item xs={12} md={6} lg={6}>
                 <AppChart
                   title="Admissions by Age"
                   chartLabels={[ '0-45', '46-65', '66-75', '76-85', '86-95', '96+', ]}
                   chartData={[ {name: 'Ages', type: 'column', fill: 'solid', data: [13, 25,	108,	221, 191,	7], }, ]}
+                  onClick={handleAgeToggleClick}
                 />
               </Grid>
             )}

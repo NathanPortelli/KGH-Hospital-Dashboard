@@ -7,17 +7,14 @@ import { bgBlur } from '../../../utils/cssStyles';
 // components
 import Iconify from '../../../components/iconify';
 //
-// import Searchbar from './Searchbar';
 import AccountPopover from './AccountPopover';
-
 import NotificationsPopover from './NotificationsPopover';
 
 // ----------------------------------------------------------------------
+// Topbar header
 
 const NAV_WIDTH = 280;
-
 const HEADER_MOBILE = 64;
-
 const HEADER_DESKTOP = 92;
 
 const StyledRoot = styled(AppBar)(({ theme }) => ({
@@ -38,33 +35,19 @@ const StyledToolbar = styled(Toolbar)(({ theme }) => ({
 
 // ----------------------------------------------------------------------
 
-Header.propTypes = {
-  onOpenNav: PropTypes.func,
-};
+Header.propTypes = { onOpenNav: PropTypes.func, };
 
 export default function Header({ onOpenNav }) {
   return (
     <StyledRoot>
       <StyledToolbar>
-        <IconButton
-          onClick={onOpenNav}
-          sx={{
-            mr: 1,
-            color: 'text.primary',
-            display: { lg: 'none' },
-          }}
-        >
+        {/* Menu icon for navbar when screen is small */}
+        <IconButton onClick={onOpenNav} sx={{ mr: 1, color: 'text.primary', display: { lg: 'none' }, }}>
           <Iconify icon="eva:menu-2-fill" />
         </IconButton>
         <Box sx={{ flexGrow: 1 }} />
-        <Stack
-          direction="row"
-          alignItems="center"
-          spacing={{
-            xs: 0.5,
-            sm: 1,
-          }}
-        >
+        {/* Notification icon and Account details on the right */}
+        <Stack direction="row" alignItems="center" spacing={{ xs: 0.5, sm: 1, }} >
           <NotificationsPopover/>
           <Box sx={{ marginLeft: 1 }}>
             <AccountPopover />

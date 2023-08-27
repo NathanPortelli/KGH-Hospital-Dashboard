@@ -1,6 +1,6 @@
-import { Grid, Box, FormControl, InputLabel } from '@mui/material';
+import { Grid, FormControl, InputLabel } from '@mui/material';
 
-function CustomFormBox({ sx, title, children }) {
+function CustomFormBox({ title, children }) {
   return (
     <Grid item xs={12} sm={6}>
       <FormControl sx={{minWidth: 'calc(100%)', m: 0 }} size="large">

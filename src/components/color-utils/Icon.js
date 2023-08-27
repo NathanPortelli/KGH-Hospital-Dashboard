@@ -30,16 +30,7 @@ export default function Icon({ checked, whiteColor, sx, ...other }) {
   const icon = (
     <Iconify
       icon="eva:checkmark-fill"
-      sx={{
-        opacity: 0,
-        ...(checked && {
-          opacity: 1,
-          color: 'common.white',
-          ...(whiteColor && {
-            color: 'common.black',
-          }),
-        }),
-      }}
+      sx={{ opacity: 0, ...(checked && { opacity: 1, color: 'common.white', ...(whiteColor && { color: 'common.black', }), }), }}
     />
   );
 

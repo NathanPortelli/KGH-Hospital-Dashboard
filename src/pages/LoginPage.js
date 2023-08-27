@@ -1,7 +1,7 @@
 import { Helmet } from 'react-helmet-async';
 // @mui
 import { styled } from '@mui/material/styles';
-import { Container, Typography, Divider } from '@mui/material';
+import { Box, Container, Typography, Divider } from '@mui/material';
 // components
 import Logo from '../components/logo';
 // sections
@@ -35,17 +35,13 @@ export default function LoginPage() {
       </Helmet>
 
       <StyledRoot>
-        <Logo
-          sx={{
-            position: 'fixed',
-            top: { xs: 16, sm: 24, md: 40 },
-            left: { xs: 16, sm: 24, md: 40 },
-          }}
-        />
+        <Box sx={{ml: 4, mt: 4}}>
+          <Logo/>
+        </Box>
         <Container maxWidth="sm">
           <StyledContent>
             <Typography variant="h4" gutterBottom>
-              Sign in to KGH's Dashboard
+              Sign in to KGH Dashboard
             </Typography>
             <Divider sx={{ my: 3 }} />
             <LoginForm />

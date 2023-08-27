@@ -1,3 +1,5 @@
+// Fixed list for 'Risk Associations' predictive analytics module to avoid processing time for demo
+
 const associationData = [
     { Antecedents: 'Stairs', Consequents: 'Bathing', Support: 0.911359725, Confidence: 0.95148248, Lift: 1.022777652, Leverage: 0.020296332, Conviction: 1.436746988, ZhangsMetric: 0.528126265 },
     { Antecedents: 'Bathing', Consequents: 'Stairs', Support: 0.911359725, Confidence: 0.979648474, Lift: 1.022777652, Leverage: 0.020296332, Conviction: 2.072015334, ZhangsMetric: 0.31948379 },

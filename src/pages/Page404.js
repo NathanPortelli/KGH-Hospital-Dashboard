@@ -22,7 +22,7 @@ export default function Page404() {
   return (
     <>
       <Helmet>
-        <title> 404 Page Not Found | Minimal UI </title>
+        <title> Page Not Found | KGH </title>
       </Helmet>
 
       <Container>
@@ -35,10 +35,11 @@ export default function Page404() {
           <Typography variant="h3" paragraph>
             Looks like you're lost
           </Typography>
-
           <Typography sx={{ color: 'text.secondary', mb: 5 }}>
             The page you're looking for doesn't seem to exist.
           </Typography>
+
+          {/* Returns user to login screen */}
           <Button to="/" size="large" variant="contained" component={RouterLink}>
             Resuscitate Yourself 
           </Button>

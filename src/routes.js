@@ -21,10 +21,10 @@ export default function Router() {
       children: [
         { element: <Navigate to="/dashboard/app" />, index: true },
         { path: 'app', element: <DashboardAppPage /> },
-        { path: 'patientlist', element: <PatientListPage /> },
         { path: 'analytics', element: <AnalyticsPage /> },
         { path: 'newpatient', element: <NewPatientPage /> },
-        { path: 'patient/:idNum', element: <PatientPage /> },
+        { path: 'patientlist', element: <PatientListPage /> },
+        { path: 'patient/:idNum', element: <PatientPage /> }, // Not available in navbar but needs to be clicked on per patient, returns patient details based off their ID Num
       ],
     },
     {
@@ -36,11 +36,11 @@ export default function Router() {
       children: [
         { element: <Navigate to="/login" />, index: true },
         { path: '404', element: <Page404 /> },
-        { path: '*', element: <Navigate to="/404" /> },
+        { path: '*', element: <Navigate to="/404" /> }, 
       ],
     },
     {
-      path: '*',
+      path: '*', // All that do not exist
       element: <Navigate to="/404" replace />,
     },
   ]);

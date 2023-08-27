@@ -9,8 +9,8 @@ const StyledIcon = styled('div')(({ theme }) => ({
   display: 'flex',
   borderRadius: '50%',
   alignItems: 'center',
-  width: theme.spacing(5),
-  height: theme.spacing(5),
+  width: theme.spacing(7),
+  height: theme.spacing(7),
   justifyContent: 'center',
   marginBottom: theme.spacing(1),
 }));
@@ -23,6 +23,9 @@ AppWidgetSummary.propTypes = {
   sx: PropTypes.object,
 };
 
+// Creates the information boxes in Dashboard main page
+// Adapted from original React MUI sample dashboard
+
 export default function AppWidgetSummary({ title, total, icon, color = 'primary', sx, ...other }) {
   return (
     <Card
@@ -30,7 +33,7 @@ export default function AppWidgetSummary({ title, total, icon, color = 'primary'
         py: 1,
         boxShadow: 0,
         textAlign: 'center',
-        color: (theme) => theme.palette[color].darker,
+        color: (theme) => theme.palette[color].contrastText,
         bgcolor: (theme) => theme.palette[color].lighter,
         transition: 'background-color 0.2s ease', 
         '&:hover': { backgroundColor: (theme) => theme.palette[color].light },
@@ -42,15 +45,11 @@ export default function AppWidgetSummary({ title, total, icon, color = 'primary'
         <Grid item xs={2} sx={{ml: 3, mt: 1}}>
           <StyledIcon
             sx={{
-              color: (theme) => theme.palette[color].dark,
-              backgroundImage: (theme) =>
-                `linear-gradient(135deg, ${alpha(theme.palette[color].dark, 0)} 0%, ${alpha(
-                  theme.palette[color].dark,
-                  0.24
-                )} 100%)`,
+              color: (theme) => theme.palette[color].contrastText,
+              backgroundImage: (theme) => `linear-gradient(135deg, ${alpha(theme.palette[color].contrastText, 0)} 0%, ${alpha(theme.palette[color].contrastText, 0.24)} 100%)`,
             }}
           >
-            <Iconify icon={icon} width={20} height={20} />
+            <Iconify icon={icon} width={30} height={30} />
           </StyledIcon>
         </Grid>
         <Grid item xs={8}>

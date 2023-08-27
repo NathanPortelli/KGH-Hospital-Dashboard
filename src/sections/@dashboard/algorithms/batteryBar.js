@@ -1,5 +1,8 @@
 import React from 'react';
 
+// Used in Risk Association module for added colour scheme in probability & accuracy percentages
+
+// eslint-disable-next-line react/prop-types
 const BatteryBar = ({ percentage }) => {
   const batteryStyle = {
     width: '100px',
@@ -10,14 +13,11 @@ const BatteryBar = ({ percentage }) => {
     position: 'relative',
   };
 
+  // Sets status colour based off how high probability/accuracy is
   const getColor = (percentage) => {
-    if (percentage < 51) {
-      return 'red';
-    }
-    if (percentage >= 51 && percentage < 63) {
-      return 'orange';
-    }
-    return '#00BFA5';
+    if (percentage < 51) { return 'red'; } // if low, red
+    if (percentage >= 51 && percentage < 63) { return 'orange'; } // if middle, orange
+    return '#00BFA5'; // if high, green
   };
 
   const fillStyle = {

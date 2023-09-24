@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Results</title>
+</head>
+<body>
+    <h1>Length of Stay Prediction Result</h1>
+    <p>Predicted Length of Stay: {{ prediction }}</p>
+    <p>Discharge Barthel Index Accuracy: {{ accuracy }}</p>
+    <p>Total Days Error: {{ error }}</p>
+    <h2>Plots</h2>
+    <h3>Histogram</h3>
+    <img src="{{ url_for('static', filename='histogram.png') }}" alt="Histogram">
+    <h3>Confusion Matrix</h3>
+    <img src="{{ url_for('static', filename='confusion_matrix.png') }}" alt="Confusion Matrix">
+</body>
+</html>

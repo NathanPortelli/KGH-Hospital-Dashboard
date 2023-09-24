@@ -1,0 +1,219 @@
+::-webkit-scrollbar {
+  display: none;
+}
+
+body {
+    font-family: Roboto, sans-serif;
+    margin: 20px;
+}
+
+h1 {
+    font-size: 32px;
+}
+
+.nav-tabs {
+    background-color: #f8f8f8;
+}
+
+.nav-link {
+    color: #ba2737;
+    border: none;
+    border-radius: 0;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+.nav-link.active {
+    background-color: #ba2737;
+    font-weight: bold;
+    color: #fff;
+}
+
+.nav-link:not(.active):hover {
+    background-color: #ba2737;
+    color: #f8f8f8;
+}
+
+.score-container {
+    margin-bottom: 40px;
+    padding: 20px;
+    border: 1px solid #ba2737;
+    border-radius: 10px;
+}
+
+.score-container h2 {
+    font-size: 24px;
+    margin-bottom: 20px;
+}
+
+.score-container p {
+    font-size: 18px;
+    margin-bottom: 10px;
+}
+
+.score-container label {
+    width: auto;
+}
+
+.score-container input[type="number"] {
+    width: 80px;
+}
+
+h2 {
+    font-size: 20px;
+    margin-bottom: 40px;
+}
+
+h3 {
+    margin-top: 10px;
+    margin-bottom: 5px;
+}
+
+label {
+    display: inline-block;
+    width: 250px;
+    vertical-align: middle;
+    margin-bottom: 5px;
+}
+
+input[type="submit"] {
+    padding: 10px 10px;
+    border-radius: 10px;
+    background: #ba2737;
+    color: #ffffff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    grid-gap: 10px;
+    font-weight: 500;
+    font-size: 20px;
+    border: none;
+    cursor: pointer;
+    margin:0 auto;
+    display:block;
+}
+
+label, select, input {
+    font-size: 16px;
+}
+
+table {
+    text-align: left;
+}
+
+select, input[type="number"] {
+    width: 250px;
+    height: 25px;
+    padding: 10px 8px;
+    margin-bottom: 20px;
+    border-radius: 15px;
+    border: 1px;
+    border-style: solid;
+    border-color: #D3D3D3;
+    box-sizing: content-box;
+    cursor: pointer;
+    background-color: white;
+}
+
+select:invalid{ color: red; }
+
+input[type="number"]
+{
+    border-color: #E0E0E0;
+    color: #808080;
+    background-color: #f5f5f5;
+    cursor: default;
+    border-style: none;
+}
+
+.radiobutton
+{
+    font-weight: normal;
+    width: 300px;
+}
+
+select option[value="0"],select option[value="1"],select option[value="2"],select option[value="3"]    {
+    color: black;
+}
+
+.prediction-results {
+  margin-top: 30px;
+  text-align: center;
+  width: 100%;
+  justify-content: center;
+}
+
+#days-pred {
+  font-size: 24px;
+  font-weight: bold;
+}
+
+.mse-container, .error-container {
+  border: 1px solid #ba2737;
+  border-radius: 5px;
+  color: #ba2737;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 15px;
+  padding: 15px;
+  margin-left: 50px;
+  margin-right: 50px;
+}
+
+.mse-container p,
+.error-container p {
+    margin: 0;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.mse-container span, .error-container span {
+  font-size: 35px;
+  float: right;
+  font-weight: bold;
+}
+
+.mse-container span#mse-bi,
+.mse-container span#mse-days,
+.error-container span#mae-days,
+.error-container span#rmse-days {
+  padding-top: 15px;
+  float: right;
+  font-size: 25px;
+  font-weight: bold;
+}
+
+.circle {
+  width: 250px;
+  height: 250px;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  font-size: 48px;
+  font-weight: bold;
+  color: white;
+  text-align: center;
+  margin: 0 auto;
+}
+
+.green {
+  background-color: green;
+}
+
+.orange {
+  background-color: orange;
+}
+
+.red {
+  background-color: red;
+}
+
+.small-text {
+  font-size: 20px;
+  margin-top: 10px;
+  font-weight: normal;
+}

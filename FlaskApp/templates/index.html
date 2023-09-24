@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Random Forest</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='styles.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+</head>
+<body>
+    <!-- Header -->
+    <h1 style="text-align: center; margin-bottom: 10px; margin-top: 20px;">Patient Assessment for Length of Stay Prediction</h1>
+    <p style="text-align: center; margin-bottom: 40px;">Go to the <b>Results & Evaluation</b> tab after clicking the <b>Predict</b> button.</p>
+
+    <!-- Tabs for user input & output -->
+    <ul class="nav nav-tabs">
+        <!-- User input page -->
+        <li class="nav-item">
+            <a class="nav-link active" id="barthel-scores-tab" data-toggle="tab" href="#barthel-scores">Barthel Scores</a>
+        </li>
+        <!-- Prediction results -->
+        <li class="nav-item">
+            <a class="nav-link" id="results-tab" data-toggle="tab" href="#results">Results & Evaluation</a>
+        </li>
+    </ul>
+
+    <div class="tab-content">
+        <!-- Barthel Scores tab -->
+        <div class="tab-pane fade show active" id="barthel-scores">
+            <!-- User input form, on submit will show 'Loading...' and run predict() in app.py -->
+            <form action="/predict" method="POST" onsubmit="showLoading()">
+                <!-- Instructions -->
+                <p style="text-align: left; margin-top: 20px; margin-bottom: 5px; margin-left: 10px; margin-right: 10px;">Input the patient's details, their Barthel Index scores when admitted, then the Barthel Index scores you wish the patient to be discharged at.</p>
+                <p style="text-align: left; margin-bottom: 20px; margin-left: 10px; margin-right: 10px;">Afterwards, click the <b>Predict</b> button at the bottom in order to get a prediction of a possible patient's length of stay based off previous patients' data.</p>
+                <table style="margin-top: 20px">
+                    <!-- Patient Personal Details -->
+                    <tr style="vertical-align: top;">
+                        <div class="score-container admission-scores">
+                            <h2 style="text-align: left;"><i class="fa fa-user" aria-hidden="true"></i> Patient's Personal Details</h2>
+                            <div class="form-group">
+                                <label for="age"><b>Patient Age:</b></label>
+                                <input style="background-color: #EBECF0;" id="age" name="age" class="form-control" type="number" min="0" max="120" required>
+                            </div>
+                            <div class="radiobutton">
+                                <label><b>Sex:</b></label>
+                                <!-- To match with dataset values, if 'Male', value changed to 1, and 0 if 'Female' -->
+                                <div class="form-check">
+                                    <input type="radio" name="sex" id="sex_1" value="1" required>
+                                    <label for="sex_1">Male</label>
+                                </div>
+                                <div class="form-check">
+                                    <input type="radio" name="sex" id="sex_0" value="0">
+                                    <label for="sex_0">Female</label>
+                                </div>
+                            </div>
+                        </div>
+                    </tr>
+                    <!-- Admission & Discharge Scores -->
+                    <tr style="vertical-align: top;">
+                        <!-- Admission Scores -->
+                        <th style="padding-right: 20px;">
+                            <div class="score-container admission-scores">
+                                <h2 style="text-align: left;"><i class="fa fa-sign-in" aria-hidden="true"></i> Admission Scores</h2>
+                                <p style="padding-bottom: 40px">Input the patient's Barthel Index scores on admission below.</p>
+                                <!-- For every score picked, the previous options are disabled from the respective target discharge score -->
+                                <!-- Real Barthel Index scores on patient admission -->
+                                <label for="score1_0">Bowels:</label>
+                                <div class="radiobutton">
+                                    <input type="radio" id="score1_0" name="score1" value="0" required data-corresponding-discharge="score12">
+                                    <label for="score1_0">Incontinent</label>
+                                </div>
+                                <div class="radiobutton">
+                                    <input type="radio" id="score1_1" name="score1" value="1" data-corresponding-discharge="score12">
+                                    <label for="score1_1">Occasional Accident</label>
+                                </div>
+                                <div class="radiobutton">
+                                    <input type="radio" id="score1_2" name="score1" value="2" data-corresponding-discharge="score12">
+                                    <label for="score1_2">Continent</label>
+                                </div><br />
+                                <!-- Transferring Admission Score -->
+                                <label for="score2_0">Transferring:</label>
+                                <div class="radiobutton">
+                                    <input type="radio" id="score2_0" name="score2" value="0" required data-corresponding-discharge="score13">
+                                    <label for="score2_0">Unable</label>
+                                </div>
+                                <div class="radiobutton">
+                                    <input type="radio" id="score2_1" name="score2" value="1" data-corresponding-discharge="score13">
+                                    <label for="score2_1">Major Help</label>
+                                </div>
+                                <div class="radiobutton">
+                                    <input type="radio" id="score2_2" name="score2" value="2" data-corresponding-discharge="score13">
+                                    <label for="score2_2">Minor Help</label>
+                                </div>
+                                <div class="radiobutton">
+                                    <input type="radio" id="score2_3" name="score2" value="3" data-corresponding-discharge="score13">
+                                    <label for="score2_3">Independent</label>
+                                </div><br />
+                                <!-- Bladder Admission Score -->
+                                <label for="score3_0">Bladder:</label>
+                                <div class="radiobutton">
+                                    <input type="radio" id="score3_0" name="score3" value="0" required data-corresponding-discharge="score14">
+                                    <label for="score3_0">Incontinent</label>
+                                </div>
+                                <div class="radiobutton">
+                                    <input type="radio" id="score3_1" name="score3" value="1" data-corresponding-discharge="score14">
+                                    <label for="score3_1">Occasional Accident</label>
+                                </div>
+                                <div class="radiobutton">
+                                    <input type="radio" id="score3_2" name="score3" value="2" data-corresponding-discharge="score14">
+                                    <label for="score3_2">Continent</label>
+                                </div><br />
+                                <!-- Mobility Admission Score -->
+                                <label for="score4_0">Mobility:</label>
+                                <div class="radiobutton">
+                                    <input type="radio" id="score4_0" name="score4" value="0" required data-corresponding-discharge="score15">
+                                    <label for="score4_0">Immobile</label>
+                                </div>
+                                <div class="radiobutton">
+                                    <input type="radio" id="score4_1" name="score4" value="1" data-corresponding-discharge="score15">
+                                    <label for="score4_1">Wheelchair Dependent</label>
+                                </div>
+                                <div class="radiobutton">
+                                    <input type="radio" id="score4_2" name="score4" value="2" data-corresponding-discharge="score15">
+                                    <label for="score4_2">Walks with help of one person</label>
+                                </div>
+                                <div class="radiobutton">
+                                    <input type="radio" id="score4_3" name="score4" value="2" data-corresponding-discharge="score15">
+                                    <label for="score4_3">Independent</label>
+                                </div><br />
+                                <!-- Grooming Admission Score -->
+                                <label for="score5_0">Grooming:</label>
+                                <div class="radiobutton">
+                                    <input type="radio" id="score5_0" name="score5" value="0" required data-corresponding-discharge="score16">
+                                    <label for="score5_0">Needs help with personal care</label>
+                                </div>
+                                <div class="radiobutton">
+                                    <input type="radio" id="score5_1" name="score5" value="1" data-corresponding-discharge="score16">
+                                    <label for="score5_1">Needs help but can groom self</label>
+                                </div>
+                                <div class="radiobutton">
+                                    <input type="radio" id="score5_2" name="score5" value="2" data-corresponding-discharge="score16">
+                                    <label for="score5_2">Independent</label>
+                                </div><br />
+                                <!-- Dressing Admission Score -->
+                                <label for="score6_0">Dressing:</label>
+                                <div class="radiobutton">
+                                    <input type="radio" id="score6_0" name="score6" value="0" required data-corresponding-discharge="score17">
+                                    <label for="score6_0">Dependent</label>
+                                </div>
+                                <div class="radiobutton">
+                                    <input type="radio" id="score6_1" name="score6" value="1" data-corresponding-discharge="score17">
+                                    <label for="score6_1">Needs help but can do half unaided</label>
+                                </div>
+                                <div class="radiobutton">
+                                    <input type="radio" id="score6_2" name="score6" value="2" data-corresponding-discharge="score17">
+                                    <label for="score6_2">Independent</label>
+                                </div><br />
+                                <!-- Toilet Use Admission Score -->
+                                <label for="score7_0">Toilet Use:</label>
+                                <div class="radiobutton">
+                                    <input type="radio" id="score7_0" name="score7" value="0" required data-corresponding-discharge="score18">
+                                    <label for="score7_0">Dependent</label>
+                                </div>
+                                <div class="radiobutton">
+                                    <input type="radio" id="score7_1" name="score7" value="1" data-corresponding-discharge="score18">
+                                    <label for="score7_1">Needs some help</label>
+                                </div>
+                                <div class="radiobutton">
+                                    <input type="radio" id="score7_2" name="score7" value="2" data-corresponding-discharge="score18">
+                                    <label for="score7_2">Independent</label>
+                                </div><br />
+                                <!-- Stairs Admission Score -->
+                                <label for="score8_0">Stairs:</label>
+                                <div class="radiobutton">
+                                    <input type="radio" id="score8_0" name="score8" value="0" required data-corresponding-discharge="score19">
+                                    <label for="score8_0">Unable</label>
+                                </div>
+                                <div class="radiobutton">
+                                    <input type="radio" id="score8_1" name="score8" value="1" data-corresponding-discharge="score19">
+                                    <label for="score8_1">Needs some help</label>
+                                </div>
+                                <div class="radiobutton">
+                                    <input type="radio" id="score8_2" name="score8" value="2" data-corresponding-discharge="score19">
+                                    <label for="score8_2">Independent</label>
+                                </div><br />
+                                <!-- Feeding Admission Score -->
+                                <label for="score9_0">Feeding:</label>
+                                <div class="radiobutton">
+                                    <input type="radio" id="score9_0" name="score9" value="0" required data-corresponding-discharge="score20">
+                                    <label for="score9_0">Unable</label>
+                                </div>
+                                <div class="radiobutton">
+                                    <input type="radio" id="score9_1" name="score9" value="1" data-corresponding-discharge="score20">
+                                    <label for="score9_1">Needs help but can feed self</label>
+                                </div>
+                                <div class="radiobutton">
+                                    <input type="radio" id="score9_2" name="score9" value="2" data-corresponding-discharge="score20">
+                                    <label for="score9_2">Independent</label>
+                                </div><br />
+                                <!-- Bathing Admission Score -->
+                                <label for="score10_0">Bathing:</label>
+                                <div class="radiobutton">
+                                    <input type="radio" id="score10_0" name="score10" value="0" required data-corresponding-discharge="score21">
+                                    <label for="score10_0">Unable</label>
+                                </div>
+                                <div class="radiobutton">
+                                    <input type="radio" id="score10_1" name="score10" value="1" data-corresponding-discharge="score21">
+                                    <label for="score10_1">Needs help but can bathe self</label>
+                                </div>
+                                <div class="radiobutton">
+                                    <input type="radio" id="score10_2" name="score10" value="2" data-corresponding-discharge="score21">
+                                    <label for="score10_2">Independent</label>
+                                </div><br />
+                                <!-- The total score is automatically set through addition of previously picked option values.-->
+                                <div style="display: inline-block;">
+                                  <label for="score11">Total Barthel Score (on Admission):</label>
+                                  <input type="number" id="score11" name="score11" min="0" max="30" readonly>
+                                </div>
+                                <br /><br />
+                            </div>
+                        </th>
+                        <!-- Target Discharge Scores -->
+                        <th style="padding-left: 20px;">
+                            <div class="score-container discharge-scores">
+                                <!-- Values in the discharge scores below are disabled if the respective admission scores were higher -->
+                                <!-- Potential Barthel Index scores when patient would be discharged -->
+                                <h2 style="text-align: left;"><i class="fa fa-bullseye"></i> Target Discharge Scores</h2>
+                                <p style="padding-bottom: 40px">Input the <u>desired</u> scores you wish the patient to be discharged with.</p>
+                                <!-- Target Bowel Discharge Score -->
+                                <label for="score12_0">Bowels:</label>
+                                <div class="radiobutton">
+                                    <input type="radio" id="score12_0" name="score12" value="0" required data-corresponding-admission="score1">
+                                    <label for="score12_0">Incontinent</label>
+                                </div>
+                                <div class="radiobutton">
+                                    <input type="radio" id="score12_1" name="score12" value="1" data-corresponding-admission="score1">
+                                    <label for="score12_1">Occasional Accident</label>
+                                </div>
+                                <div class="radiobutton">
+                                    <input type="radio" id="score12_2" name="score12" value="2" data-corresponding-admission="score1">
+                                    <label for="score12_2">Continent</label>
+                                </div><br />
+                                <!-- Target Transferring Discharge Score -->
+                                <label for="score13_0">Transferring:</label>
+                                <div class="radiobutton">
+                                    <input type="radio" id="score13_0" name="score13" value="0" required data-corresponding-admission="score2">
+                                    <label for="score13_0">Unable</label>
+                                </div>
+                                <div class="radiobutton">
+                                    <input type="radio" id="score13_1" name="score13" value="1" data-corresponding-admission="score2">
+                                    <label for="score13_1">Major Help</label>
+                                </div>
+                                <div class="radiobutton">
+                                    <input type="radio" id="score13_2" name="score13" value="2" data-corresponding-admission="score2">
+                                    <label for="score13_2">Minor Help</label>
+                                </div>
+                                <div class="radiobutton">
+                                    <input type="radio" id="score13_3" name="score13" value="3" data-corresponding-admission="score2">
+                                    <label for="score13_3">Independent</label>
+                                </div><br />
+                                <!-- Target Bladder Discharge Score -->
+                                <label for="score14_0">Bladder:</label>
+                                <div class="radiobutton">
+                                    <input type="radio" id="score14_0" name="score14" value="0" required data-corresponding-admission="score3">
+                                    <label for="score14_0">Incontinent</label>
+                                </div>
+                                <div class="radiobutton">
+                                    <input type="radio" id="score14_1" name="score14" value="1" data-corresponding-admission="score3">
+                                    <label for="score14_1">Occasional Accident</label>
+                                </div>
+                                <div class="radiobutton">
+                                    <input type="radio" id="score14_2" name="score14" value="2" data-corresponding-admission="score3">
+                                    <label for="score14_2">Continent</label>
+                                </div><br />
+                                <!-- Target Mobility Discharge Score -->
+                                <label for="score15_0">Mobility:</label>
+                                <div class="radiobutton">
+                                    <input type="radio" id="score15_0" name="score15" value="0" required data-corresponding-admission="score4">
+                                    <label for="score15_0">Immobile</label>
+                                </div>
+                                <div class="radiobutton">
+                                    <input type="radio" id="score15_1" name="score15" value="1" data-corresponding-admission="score4">
+                                    <label for="score15_1">Wheelchair Dependent</label>
+                                </div>
+                                <div class="radiobutton">
+                                    <input type="radio" id="score15_2" name="score15" value="2" data-corresponding-admission="score4">
+                                    <label for="score15_2">Walks with help of one person</label>
+                                </div>
+                                <div class="radiobutton">
+                                    <input type="radio" id="score15_3" name="score15" value="2" data-corresponding-admission="score4">
+                                    <label for="score15_3">Independent</label>
+                                </div><br />
+                                <!-- Target Grooming Discharge Score -->
+                                <label for="score16_0">Grooming:</label>
+                                <div class="radiobutton">
+                                    <input type="radio" id="score16_0" name="score16" value="0" required data-corresponding-admission="score5">
+                                    <label for="score16_0">Needs help with personal care</label>
+                                </div>
+                                <div class="radiobutton">
+                                    <input type="radio" id="score16_1" name="score16" value="1" data-corresponding-admission="score5">
+                                    <label for="score16_1">Needs help but can groom self</label>
+                                </div>
+                                <div class="radiobutton">
+                                    <input type="radio" id="score16_2" name="score16" value="2" data-corresponding-admission="score5">
+                                    <label for="score16_2">Independent</label>
+                                </div><br />
+                                <!-- Target Dressing Discharge Score -->
+                                <label for="score17_0">Dressing:</label>
+                                <div class="radiobutton">
+                                    <input type="radio" id="score17_0" name="score17" value="0" required data-corresponding-admission="score6">
+                                    <label for="score17_0">Dependent</label>
+                                </div>
+                                <div class="radiobutton">
+                                    <input type="radio" id="score17_1" name="score17" value="1" data-corresponding-admission="score6">
+                                    <label for="score17_1">Needs help but can do half unaided</label>
+                                </div>
+                                <div class="radiobutton">
+                                    <input type="radio" id="score17_2" name="score17" value="2" data-corresponding-admission="score6">
+                                    <label for="score17_2">Independent</label>
+                                </div><br />
+                                <!-- Target Toilet Use Discharge Score -->
+                                <label for="score18_0">Toilet Use:</label>
+                                <div class="radiobutton">
+                                    <input type="radio" id="score18_0" name="score18" value="0" required data-corresponding-admission="score7">
+                                    <label for="score18_0">Dependent</label>
+                                </div>
+                                <div class="radiobutton">
+                                    <input type="radio" id="score18_1" name="score18" value="1" data-corresponding-admission="score7">
+                                    <label for="score18_1">Needs some help</label>
+                                </div>
+                                <div class="radiobutton">
+                                    <input type="radio" id="score18_2" name="score18" value="2" data-corresponding-admission="score7">
+                                    <label for="score18_2">Independent</label>
+                                </div><br />
+                                <!-- Target Stairs Discharge Score -->
+                                <label for="score19_0">Stairs:</label>
+                                <div class="radiobutton">
+                                    <input type="radio" id="score19_0" name="score19" value="0" required data-corresponding-admission="score8">
+                                    <label for="score19_0">Unable</label>
+                                </div>
+                                <div class="radiobutton">
+                                    <input type="radio" id="score19_1" name="score19" value="1" data-corresponding-admission="score8">
+                                    <label for="score19_1">Needs some help</label>
+                                </div>
+                                <div class="radiobutton">
+                                    <input type="radio" id="score19_2" name="score19" value="2" data-corresponding-admission="score8">
+                                    <label for="score19_2">Independent</label>
+                                </div><br />
+                                <!-- Target Feeding Discharge Score -->
+                                <label for="score20_0">Feeding:</label>
+                                <div class="radiobutton">
+                                    <input type="radio" id="score20_0" name="score20" value="0" required data-corresponding-admission="score9">
+                                    <label for="score20_0">Unable</label>
+                                </div>
+                                <div class="radiobutton">
+                                    <input type="radio" id="score20_1" name="score20" value="1" data-corresponding-admission="score9">
+                                    <label for="score20_1">Needs help but can feed self</label>
+                                </div>
+                                <div class="radiobutton">
+                                    <input type="radio" id="score20_2" name="score20" value="2" data-corresponding-admission="score9">
+                                    <label for="score20_2">Independent</label>
+                                </div><br />
+                                <!-- Target Bathing Discharge Score -->
+                                <label for="score21_0">Bathing:</label>
+                                <div class="radiobutton">
+                                    <input type="radio" id="score21_0" name="score21" value="0" required data-corresponding-admission="score10">
+                                    <label for="score21_0">Unable</label>
+                                </div>
+                                <div class="radiobutton">
+                                    <input type="radio" id="score21_1" name="score21" value="1" data-corresponding-admission="score10">
+                                    <label for="score21_1">Needs help but can bathe self</label>
+                                </div>
+                                <div class="radiobutton">
+                                    <input type="radio" id="score21_2" name="score21" value="2" data-corresponding-admission="score10">
+                                    <label for="score10_2">Independent</label>
+                                </div><br />
+                                <!-- The total score is automatically set through addition of previously picked option values.-->
+                                <div style="display: inline-block;">
+                                    <label for="score22">Total Barthel Score (on Target Discharge):</label>
+                                    <input type="number" id="score22" name="score22" min="0" max="30" readonly><br>
+                                </div><br /><br />
+                            </div>
+                        </th>
+                        <div id="loading" style="color: #ba2737; display: none; font-size: 25px; text-align: center;"><h4>Loading results...</h4></div>
+                    </tr>
+                </table>
+                <!-- On submit will run predict() in app.py, predicting the LOS based on the user's inputs. -->
+                 <input type="submit" value="Predict"><br />
+            </form>
+        </div>
+
+        <!-- Results & Evaluation tab -->
+        <div class="tab-pane fade" id="results">
+            <!-- Once app.py runs and a prediction is created (aka the user has inputted the required values and pressed 'Predict') -->
+            {% if bi_pred %}
+            <div>
+                <div id="user-inputs" style="text-align: center;"><br />
+                    <!-- Header -->
+                    <h4 style="margin-bottom: 20px">Patient's Barthel Index Scores</h4>
+                    <p>The predictions found below are made based on the following patient Barthel admission scores, and desired outcome for satisfactory patient discharge.</p>
+                    <div class="container">
+                        <div class="row">
+                            <!-- User's inputted options -->
+                            <!-- Patient Personal Details -->
+                            <div class="col-md-4">
+                                <table style="margin-left: auto; margin-right: auto;">
+                                    <tr><td>&nbsp;</td></tr>
+                                    <tr><td><b><i class="fa fa-user" aria-hidden="true"></i> Patient's Personal Details</b></td></tr>
+                                    <tr>
+                                        <td>Patient's Age:</td>
+                                        <td><b>{{ user_inputs['age'] }}</b></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Patient's Gender:</td>
+                                        <td><b>
+                                            <!-- Reverting 'sex' values back from 0 and 1 to 'Female' and 'Male' -->
+                                            {% if user_inputs['sex'] == "1" %}
+                                                Male
+                                            {% else %}
+                                                Female
+                                            {% endif %}
+                                        </b></td>
+                                    </tr>
+                                </table>
+                            </div>
+                             <!-- Barthel Index Admission Details -->
+                            <div class="col-md-4">
+                                <table style="margin-left: auto; margin-right: auto;">
+                                    <tr><td>&nbsp;</td></tr>
+                                    <tr><td><b><i class="fa fa-sign-in" aria-hidden="true"></i> Admission Scores</b></td></tr>
+                                    <tr>
+                                        <td>Bowels:</td>
+                                        <td>{{ user_inputs['score1'] }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Transferring:</td>
+                                        <td>{{ user_inputs['score2'] }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Bladder:</td>
+                                        <td>{{ user_inputs['score3'] }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Mobility:</td>
+                                        <td>{{ user_inputs['score4'] }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Grooming:</td>
+                                        <td>{{ user_inputs['score5'] }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Dressing:</td>
+                                        <td>{{ user_inputs['score6'] }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Toilet Use:</td>
+                                        <td>{{ user_inputs['score7'] }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Stairs:</td>
+                                        <td>{{ user_inputs['score8'] }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Feeding:</td>
+                                        <td>{{ user_inputs['score9'] }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Bathing:</td>
+                                        <td>{{ user_inputs['score10'] }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Total Barthel Score (on Admission): &nbsp;</td>
+                                        <td><b>{{ user_inputs['score11'] }}</b></td>
+                                    </tr>
+                                </table>
+                            </div>
+                             <!-- Patient's Target Discharge Scores -->
+                            <div class="col-md-4">
+                                <tr><td>&nbsp;</td></tr>
+                                <table style="margin-left: auto; margin-right: auto;">
+                                    <tr><td><b><i class="fa fa-bullseye"></i> Target Discharge Scores</b></td></tr>
+                                    <tr>
+                                        <td>Bowels:</td>
+                                        <td>{{ user_inputs['score12'] }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Transferring:</td>
+                                        <td>{{ user_inputs['score13'] }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Bladder:</td>
+                                        <td>{{ user_inputs['score14'] }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Mobility:</td>
+                                        <td>{{ user_inputs['score15'] }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Grooming:</td>
+                                        <td>{{ user_inputs['score16'] }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Dressing:</td>
+                                        <td>{{ user_inputs['score17'] }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Toilet Use:</td>
+                                        <td>{{ user_inputs['score18'] }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Stairs:</td>
+                                        <td>{{ user_inputs['score19'] }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Feeding:</td>
+                                        <td>{{ user_inputs['score20'] }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Bathing:</td>
+                                        <td>{{ user_inputs['score21'] }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Total Barthel Score (on Discharge): &nbsp;</td>
+                                        <td><b>{{ user_inputs['score22'] }}</b></td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                 <!-- Predictions & Statistics -->
+                <br><hr style="height:2px;color:#ffffff;background-color:#ffffff"><br>
+                <h4 style="text-align: center;">Prediction Results</h4>
+                <div class="prediction-results">
+                  <!-- LOS prediction result, with colour-coded display -->
+                  <div class="circle {% if 0 <= days_pred <= 40 %}green{% elif 41 <= days_pred <= 70 %}orange{% else %}red{% endif %}">
+                    <span>{{ days_pred }}</span>
+                    <div class="small-text">predicted number of<br>days in hospital</div>
+                  </div><br>
+                  <!-- Error results -->
+                  <h4 style="text-align: center; color: #ba2737;">Algorithm Scores</h4>
+                  <div class="mse-container">
+                    <p>MSE for discharge Barthel Index model: <span id="mse-bi">{{ mse_bi }}</span></p>
+                  </div>
+                  <div class="mse-container">
+                    <p>MSE for total number of days in hospital model: <span id="mse-days">{{ mse_days }}</span></p>
+                  </div>
+                  <div class="error-container">
+                    <p>Mean Absolute Error (Total Number of Days Model): <span id="mae-days">{{ mae_days }}</span></p>
+                  </div>
+                  <div class="error-container">
+                    <p>Root Mean Squared Error (Total Number of Days Model): <span id="rmse-days">{{ rmse_days }}</span></p>
+                  </div>
+                </div>
+                <br />
+                 <!-- Graphs -->
+                <p style="margin: 20px;">The graphs below indicate the different aspects of and impacts on the algorithm, with a comparison between the predicted and actual data from previously admitted patients:</p>
+                <br />
+                <div style="width: 80%;">
+                    {{ scatter_plot|safe }}
+                </div>
+                <div>
+                    {{ hist_bi_chart|safe }}
+                </div>
+
+                <div>
+                    {{ hist_days_chart|safe }}
+                </div>
+            </div>
+            {% else %}
+             <!-- If the user has not yet inputted any values -->
+            <div style="margin: 20px;">
+                <p><b>Results are not yet available.</b></p>
+                <p>Please go to the <b>'Barthel Scores'</b> tab and input the patient's barthel scores on admission, as well as the desired outcome for the barthel scores for when the patient is discharged, then click the <b>'Predict'</b> button at the bottom.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</body>
+
+<script>
+    // "Loading results..." notice appears
+    function showLoading() {
+        document.getElementById("loading").style.display = "block";
+    }
+    // Automatically switch to the Results & Evaluation tab
+    document.addEventListener("DOMContentLoaded", function() {
+        document.querySelector("#barthel-scores-tab").click();
+    });
+
+    var admissionScoresInputs = document.querySelectorAll(".admission-scores input[type='radio']");
+    var dischargeScoresInputs = document.querySelectorAll(".discharge-scores input[type='radio']");
+
+    // Attach event listeners to the admission scores radio buttons
+    admissionScoresInputs.forEach(function(input) {
+        input.addEventListener("change", updateDischargeScores);
+    });
+
+    // Mapping admission with discharge scores, and
+    // disabling target discharge options if they are lower than picked admission scores
+    function updateDischargeScores() {
+        var admissionDischargeMapping = {
+            "score1": "score12",
+            "score2": "score13",
+            "score3": "score14",
+            "score4": "score15",
+            "score5": "score16",
+            "score6": "score17",
+            "score7": "score18",
+            "score8": "score19",
+            "score9": "score20",
+            "score10": "score21"
+        };
+
+        // Get the selected admission group and its radio buttons
+        var selectedAdmissionGroup = this.getAttribute("name");
+        var admissionGroupInputs = document.querySelectorAll(
+            `.admission-scores input[name='${selectedAdmissionGroup}']`
+        );
+
+        // Get the index of the selected admission option
+        var selectedAdmissionIndex = Array.from(admissionGroupInputs).indexOf(this);
+
+        // Get the corresponding discharge group and its radio buttons
+        var correspondingDischargeGroup = admissionDischargeMapping[selectedAdmissionGroup];
+        var dischargeGroupInputs = document.querySelectorAll(
+            `.discharge-scores input[name='${correspondingDischargeGroup}']`
+        );
+
+        // Enable all discharge radio buttons
+        dischargeGroupInputs.forEach(function(dischargeInput) {
+            dischargeInput.disabled = false;
+        });
+
+        // Disable discharge radio buttons that come before the selected admission radio button
+        for (let i = 0; i < selectedAdmissionIndex; i++) {
+            dischargeGroupInputs[i].disabled = true;
+        }
+    }
+
+    // Used to calculate total admission score
+    var selectInputs = document.querySelectorAll("input[type='radio']:not(#score11):not(#score12_0):not(#score12_1):not(#score12_2):not(#score13_0):not(#score13_1):not(#score13_2):not(#score13_3):not(#score14_0):not(#score14_1):not(#score14_2):not(#score15_0):not(#score15_1):not(#score15_2):not(#score15_3):not(#score16_0):not(#score16_1):not(#score16_2):not(#score17_0):not(#score17_1):not(#score17_2):not(#score18_0):not(#score18_1):not(#score18_2):not(#score19_0):not(#score19_1):not(#score19_2):not(#score20_0):not(#score20_1):not(#score20_2):not(#score21_0):not(#score21_1):not(#score21_2)");
+
+    // Attach an event listener to each input radio button
+    selectInputs.forEach(function(input) {
+        input.addEventListener("change", calculateTotalBarthelScore);
+    });
+
+    function calculateTotalBarthelScore() {
+        var totalScoreInput = document.getElementById("score11"); // Storing total barthel score in 'score11'
+        var totalScore = 0;
+        var userInputDiv = document.getElementById("user-inputs");
+
+        if (userInputDiv) { // Ensure the div exists in the DOM
+            userInputDiv.innerHTML = ""; // Clear previous content
+
+            // Calculate the sum of selected option values for scores 1 to 10 (admission details)
+            selectInputs.forEach(function(input) {
+                if (input.checked) {
+                    var selectedValue = parseInt(input.value);
+                    if (!isNaN(selectedValue)) {
+                        userInputDiv.innerHTML += input.labels[0].textContent + ": " + input.labels[0].textContent + "<br>";
+                    }
+                }
+            });
+        }
+        // Calculate the sum of selected option values for scores 1 to 10 (admission details)
+        selectInputs.forEach(function(input) {
+            if (input.checked) {
+                var selectedValue = parseInt(input.value);
+                if (!isNaN(selectedValue)) {
+                    totalScore += selectedValue;
+                }
+            }
+        });
+
+        totalScoreInput.value = totalScore;
+    }
+
+    // Used to calculate total target discharge score
+    var dischargeScoresInputs = document.querySelectorAll(".discharge-scores input[type='radio']");
+
+    // Attach an event listener to the discharge scores radio buttons
+    dischargeScoresInputs.forEach(function(input) {
+        input.addEventListener("change", calculateTotalBarthelScoreDischarge);
+    });
+
+    function calculateTotalBarthelScoreDischarge() {
+        var totalScoreInput = document.getElementById("score22"); // Storing total barthel score in 'score22'
+        var totalScore = 0;
+
+        // Calculate the sum of selected option values for scores 12 to 21 (discharge scores)
+        dischargeScoresInputs.forEach(function(input) {
+            if (input.checked) {
+                var selectedValue = parseInt(input.value);
+                if (!isNaN(selectedValue)) {
+                    totalScore += selectedValue;
+                }
+            }
+        });
+
+        totalScoreInput.value = totalScore;
+    }
+
+    // Automatically switch to the Results & Evaluation tab
+    document.getElementById("predict-button").addEventListener("click", function() {
+        document.querySelector("#results-tab").click();
+    });
+</script>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</html>

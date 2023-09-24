@@ -76,7 +76,7 @@ export default function NewPatientPage() {
   const [kinName, setKinName] = useState('');
   const [kinRelation, setKinRelation] = useState('');
   const [kinContact, setKinContact] = useState('');
-  const [setKinCollectionRef] = useState(null);
+  const [kinCollectionRef, setKinCollectionRef] = useState(null);
 
   // Admission Details
   const [newAdmDate, setNewAdmDate] = useState("");
@@ -262,6 +262,7 @@ export default function NewPatientPage() {
       navigate('/dashboard/patientlist');
     } catch (e) {
       toast.error('An error occurred while submitting the details. Please try again.');
+      console.log("An error occurred while submitting the details.", e)
     }
   };  
 

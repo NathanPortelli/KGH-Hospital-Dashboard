@@ -186,7 +186,7 @@ export default function PatientPage() {
     switch (patientStatus) {
       case 'Not Set': return 'grey';
       case 'Awaiting List': return 'black';
-      case 'Current Patient ': return 'green';
+      case 'Current Patient': return '#008000';
       case 'Observation': return 'teal';
       case 'Day Hospital': return '#ba000d';
       case 'Outpatient': return 'brown';
@@ -671,7 +671,28 @@ export default function PatientPage() {
             <Typography gutterBottom mb={5}> {newIDNum} </Typography>
           </Grid>
           {/* Patient status pillbox, onclick opens Dialog popup to change patient status. Colour based off getPatientStatusColor */}
-          <Grid item xs={2} textAlign="right"><Button size="small" onClick={() => handleOpenStatusDialog()} style={{ color: 'white', backgroundColor: getPatientStatusColor(newPatientStatus) }}>{newPatientStatus || 'Not Set'}</Button></Grid>
+          <Grid item xs={1} textAlign="right">
+            <Typography><b> Status: </b></Typography>
+          </Grid>
+          <Grid item xs={1} textAlign="right">
+            <Button 
+              size="small" 
+              onClick={() => handleOpenStatusDialog()} 
+              style={{
+                color: 'white', 
+                backgroundColor: getPatientStatusColor(newPatientStatus),
+                transition: 'background-color 0.3s ease',
+                '&:hover': {
+                  opacity: 0.5,
+                  boxShadow: '0 0 5px rgba(0, 0, 0, 0.5)', // Add a box shadow on hover
+                  // or you can use border:
+                  border: '1px solid rgba(0, 0, 0, 0.5)', // Add a border on hover
+                },
+              }}
+            >
+              {newPatientStatus || 'Not Set'}
+            </Button>
+          </Grid>
           {/* ... menu with Delete Patient option, hidden inside the dots menu due to recommendation */}
           <Grid item xs={2} textAlign="right">
             <Grid onClick={handleOpenPopover} onClose={handleClosePopover} container direction="row" alignItems="center" sx={{ cursor: "pointer", ml: 3, position: 'relative', padding: '8px', }}>

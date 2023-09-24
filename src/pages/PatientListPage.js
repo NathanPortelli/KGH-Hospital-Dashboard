@@ -280,7 +280,7 @@ export default function UserPage() {
     switch (status) {
       case 'Not Set': return 'grey';
       case 'Awaiting List': return 'black';
-      case 'Current Patient ': return 'green';
+      case 'Current Patient': return '#008000';
       case 'Observation': return 'teal';
       case 'Day Hospital': return '#ba000d';
       case 'Outpatient': return 'brown';
